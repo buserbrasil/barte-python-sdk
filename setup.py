@@ -9,7 +9,8 @@ setup(
     packages=find_packages(),
     install_requires=[
         "requests>=2.25.0",
-        "dacite>=1.8.0"
+        "dacite>=1.8.0",
+        "python-dateutil>=2.8.0"
     ],
     python_requires=">=3.11",
     classifiers=[

@@ -2,11 +2,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from dacite import Config
+from dateutil.parser import parse as parse_date
 
 # Default config for dacite with datetime conversion
 DACITE_CONFIG = Config(
     type_hooks={
-        datetime: lambda x: datetime.fromisoformat(x.replace("Z", "+00:00")) if isinstance(x, str) else x
+        datetime: lambda x: parse_date(x) if isinstance(x, str) else x
     }
 )
 
