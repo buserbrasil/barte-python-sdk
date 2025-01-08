@@ -36,6 +36,8 @@ class Charge:
     customer: Customer
     created_at: datetime
     metadata: Optional[Dict[str, Any]] = None
+    installments: Optional[int] = None
+    installment_amount: Optional[int] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Charge":
