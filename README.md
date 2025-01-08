@@ -1,6 +1,6 @@
 # Barte Python SDK
 
-[![Tests](https://github.com/buser-brasil/barte-python-sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/buser-brasil/barte-python-sdk/actions/workflows/tests.yml)
+[![Tests](https://github.com/buserbrasil/barte-python-sdk/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/buserbrasil/barte-python-sdk/actions/workflows/tests.yml)
 [![codecov](https://codecov.io/gh/buser-brasil/barte-python-sdk/branch/main/graph/badge.svg)](https://codecov.io/gh/buser-brasil/barte-python-sdk)
 
 A Python SDK for integrating with the Barte payment platform API. This library provides a simple and efficient way to interact with Barte's payment services, allowing you to process payments, manage transactions, and handle customer data securely.
