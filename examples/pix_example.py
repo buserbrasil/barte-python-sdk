@@ -1,44 +1,64 @@
-from barte import BarteClient
+from barte import BarteClient, PixCharge
 from datetime import datetime, timedelta
 
-# Inicializa o cliente
-client = BarteClient(
-    api_key="sua_api_key_aqui",
-    environment="sandbox"
-)
+def main():
+    # Initialize the client
+    client = BarteClient(
+        api_key="your_api_key",
+        environment="sandbox"  # Use "production" for production environment
+    )
 
-try:
-    # Criar uma cobrança PIX
-    # Define data de expiração para 24 horas
-    expiration_date = (datetime.utcnow() + timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    
+    # Create a PIX charge with expiration
+    expiration = (datetime.utcnow() + timedelta(hours=1)).isoformat()
     pix_data = {
-        "amount": 9990,  # R$ 99,90
-        "description": "Pedido #123 - Loja Virtual",
+        "amount": 15000,  # R$ 150,00
+        "currency": "BRL",
+        "description": "Example PIX charge",
         "customer": {
-            "name": "João da Silva",
+            "name": "John Doe",
             "tax_id": "123.456.789-00",
-            "email": "joao@exemplo.com",
-            "phone": "+5511999999999"
+            "email": "john@example.com"
         },
-        "expiration_date": expiration_date
+        "expiration_date": expiration,
+        "metadata": {
+            "order_id": "123",
+            "product_id": "456"
+        }
     }
-    
-    # Criar a cobrança PIX
-    charge = client.create_pix_charge(pix_data)
-    print("Cobrança PIX criada:", charge)
-    
-    # Obter dados do QR Code
-    charge_id = charge["id"]
-    qr_code_data = client.get_pix_qrcode(charge_id)
-    print("\nDados do QR Code PIX:")
-    print("QR Code:", qr_code_data["qr_code"])
-    print("Imagem do QR Code:", qr_code_data["qr_code_image"])
-    print("PIX Copia e Cola:", qr_code_data["copy_and_paste"])
-    
-    # Monitorar status da cobrança
-    charge_status = client.get_charge(charge_id)
-    print("\nStatus da cobrança:", charge_status["status"])
 
-except Exception as e:
-    print("Erro:", str(e)) 
+    # Create PIX charge
+    pix_charge = client.create_pix_charge(pix_data)
+    print("\nPIX Charge Created:")
+    print(f"ID: {pix_charge.id}")
+    print(f"Amount: R$ {pix_charge.amount/100:.2f}")
+    print(f"Status: {pix_charge.status}")
+    print(f"Customer: {pix_charge.customer.name}")
+    print(f"Created at: {pix_charge.created_at}")
+
+    # Get QR code data
+    pix_charge = pix_charge.get_qr_code()
+    print("\nPIX Payment Information:")
+    print(f"QR Code: {pix_charge.qr_code}")
+    print(f"QR Code Image URL: {pix_charge.qr_code_image}")
+    print(f"Copy and Paste code: {pix_charge.copy_and_paste}")
+
+    # Get charge details after a while
+    updated_charge = client.get_charge(pix_charge.id)
+    print(f"\nCharge status: {updated_charge.status}")
+
+    # List all PIX charges
+    print("\nRecent PIX charges:")
+    charges = client.list_charges({"payment_method": "pix", "limit": 5})
+    for charge in charges:
+        if isinstance(charge, PixCharge):
+            print(f"- {charge.id}: R$ {charge.amount/100:.2f} ({charge.status})")
+
+    # Cancel the charge if still pending
+    if updated_charge.status == "pending":
+        canceled_charge = updated_charge.cancel()
+        print(f"\nCharge canceled: {canceled_charge.status}")
+    else:
+        print(f"\nCharge cannot be canceled: {updated_charge.status}")
+
+if __name__ == "__main__":
+    main() 
