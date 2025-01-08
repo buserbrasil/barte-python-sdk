@@ -348,3 +348,148 @@ class TestBarteClient:
         client1 = BarteClient(api_key="test_key", environment="sandbox")
         client2 = BarteClient.get_instance()
         assert client1 is client2 
+
+    @patch('requests.post')
+    def test_charge_with_card_token(self, mock_post, barte_client, mock_charge_response):
+        """Test creating a charge with card token"""
+        mock_post.return_value.json.return_value = mock_charge_response
+        mock_post.return_value.raise_for_status = Mock()
+
+        token_id = "tok_123456"
+        charge_data = {
+            "amount": 1000,
+            "description": "Test charge with token",
+            "customer": {
+                "name": "John Doe",
+                "tax_id": "123.456.789-00",
+                "email": "john@example.com"
+            },
+            "metadata": {
+                "order_id": "123"
+            }
+        }
+
+        charge = barte_client.charge_with_card_token(token_id, charge_data)
+        
+        assert isinstance(charge, Charge)
+        assert charge.id == "chr_123456789"
+        assert charge.amount == 1000
+        assert charge.payment_method == "credit_card"
+        assert charge.customer.name == "John Doe"
+        
+        expected_data = {
+            **charge_data,
+            "payment_method": "credit_card",
+            "card_token": token_id
+        }
+        mock_post.assert_called_once_with(
+            f"{barte_client.base_url}/v1/charges",
+            headers=barte_client.headers,
+            json=expected_data
+        )
+
+    @patch('requests.get')
+    def test_get_charge_refunds(self, mock_get, barte_client):
+        """Test getting refunds for a charge"""
+        mock_response = {
+            "data": [
+                {
+                    "id": "ref_123456",
+                    "charge_id": "chr_123456789",
+                    "amount": 500,
+                    "status": "succeeded",
+                    "created_at": "2024-01-07T10:00:00Z"
+                },
+                {
+                    "id": "ref_789012",
+                    "charge_id": "chr_123456789",
+                    "amount": 500,
+                    "status": "succeeded",
+                    "created_at": "2024-01-07T11:00:00Z"
+                }
+            ]
+        }
+        mock_get.return_value.json.return_value = mock_response
+        mock_get.return_value.raise_for_status = Mock()
+
+        refunds = barte_client.get_charge_refunds("chr_123456789")
+        
+        assert len(refunds) == 2
+        assert all(isinstance(refund, Refund) for refund in refunds)
+        
+        # Test first refund
+        assert refunds[0].id == "ref_123456"
+        assert refunds[0].amount == 500
+        assert refunds[0].status == "succeeded"
+        assert isinstance(refunds[0].created_at, datetime)
+        
+        # Test second refund
+        assert refunds[1].id == "ref_789012"
+        assert refunds[1].amount == 500
+        assert refunds[1].status == "succeeded"
+        assert isinstance(refunds[1].created_at, datetime)
+        
+        mock_get.assert_called_once_with(
+            f"{barte_client.base_url}/v1/charges/chr_123456789/refunds",
+            headers=barte_client.headers
+        )
+
+    @patch('requests.get')
+    def test_get_charge_refunds_empty(self, mock_get, barte_client):
+        """Test getting refunds for a charge with no refunds"""
+        mock_response = {"data": []}
+        mock_get.return_value.json.return_value = mock_response
+        mock_get.return_value.raise_for_status = Mock()
+
+        refunds = barte_client.get_charge_refunds("chr_123456789")
+        
+        assert len(refunds) == 0
+        assert isinstance(refunds, list)
+        
+        mock_get.assert_called_once_with(
+            f"{barte_client.base_url}/v1/charges/chr_123456789/refunds",
+            headers=barte_client.headers
+        )
+
+    @patch('requests.post')
+    def test_charge_with_card_token_with_installments(self, mock_post, barte_client, mock_charge_response):
+        """Test creating a charge with card token and installments"""
+        response_with_installments = {
+            **mock_charge_response,
+            "installments": 3,
+            "installment_amount": 333
+        }
+        mock_post.return_value.json.return_value = response_with_installments
+        mock_post.return_value.raise_for_status = Mock()
+
+        token_id = "tok_123456"
+        charge_data = {
+            "amount": 1000,
+            "description": "Test charge with installments",
+            "customer": {
+                "name": "John Doe",
+                "tax_id": "123.456.789-00",
+                "email": "john@example.com"
+            },
+            "installments": 3
+        }
+
+        charge = barte_client.charge_with_card_token(token_id, charge_data)
+        
+        assert isinstance(charge, Charge)
+        assert charge.id == "chr_123456789"
+        assert charge.amount == 1000
+        assert charge.payment_method == "credit_card"
+        assert charge.installments == 3
+        assert charge.installment_amount == 333
+        
+        expected_data = {
+            **charge_data,
+            "payment_method": "credit_card",
+            "card_token": token_id
+        }
+        mock_post.assert_called_once_with(
+            f"{barte_client.base_url}/v1/charges",
+            headers=barte_client.headers,
+            json=expected_data
+        ) 
