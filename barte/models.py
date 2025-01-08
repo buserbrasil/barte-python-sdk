@@ -69,9 +69,9 @@ class PixCharge(Charge):
     def get_qr_code(self) -> "PixCharge":
         from .client import BarteClient
         qr_data = BarteClient.get_instance().get_pix_qrcode(self.id)
-        self.qr_code = qr_data["qr_code"]
-        self.qr_code_image = qr_data["qr_code_image"]
-        self.copy_and_paste = qr_data["copy_and_paste"]
+        self.qr_code = qr_data.qr_code
+        self.qr_code_image = qr_data.qr_code_image
+        self.copy_and_paste = qr_data.copy_and_paste
         return self
 
 @dataclass
@@ -103,4 +103,14 @@ class InstallmentOptions:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "InstallmentOptions":
         options = [InstallmentSimulation(**item) for item in data["installments"]]
-        return cls(installments=options) 
+        return cls(installments=options)
+
+@dataclass
+class PixQRCode:
+    qr_code: str
+    qr_code_image: str
+    copy_and_paste: str
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "PixQRCode":
+        return cls(**data) 

@@ -1,4 +1,4 @@
-from barte import BarteClient, PixCharge
+from barte import BarteClient, PixCharge, PixQRCode
 from datetime import datetime, timedelta
 
 def main():
@@ -27,7 +27,7 @@ def main():
     }
 
     # Create PIX charge
-    pix_charge = client.create_pix_charge(pix_data)
+    pix_charge: PixCharge = client.create_pix_charge(pix_data)
     print("\nPIX Charge Created:")
     print(f"ID: {pix_charge.id}")
     print(f"Amount: R$ {pix_charge.amount/100:.2f}")
@@ -36,14 +36,22 @@ def main():
     print(f"Created at: {pix_charge.created_at}")
 
     # Get QR code data
+    # Option 1: Using the charge object method
     pix_charge = pix_charge.get_qr_code()
-    print("\nPIX Payment Information:")
+    print("\nPIX Payment Information (via charge):")
     print(f"QR Code: {pix_charge.qr_code}")
     print(f"QR Code Image URL: {pix_charge.qr_code_image}")
     print(f"Copy and Paste code: {pix_charge.copy_and_paste}")
 
+    # Option 2: Getting QR code directly
+    qr_code: PixQRCode = client.get_pix_qrcode(pix_charge.id)
+    print("\nPIX Payment Information (direct):")
+    print(f"QR Code: {qr_code.qr_code}")
+    print(f"QR Code Image URL: {qr_code.qr_code_image}")
+    print(f"Copy and Paste code: {qr_code.copy_and_paste}")
+
     # Get charge details after a while
-    updated_charge = client.get_charge(pix_charge.id)
+    updated_charge: PixCharge = client.get_charge(pix_charge.id)
     print(f"\nCharge status: {updated_charge.status}")
 
     # List all PIX charges

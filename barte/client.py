@@ -1,6 +1,6 @@
 from typing import Dict, Any, Optional, List
 import requests
-from .models import Charge, CardToken, Refund, InstallmentOptions, PixCharge
+from .models import Charge, CardToken, Refund, InstallmentOptions, PixCharge, PixQRCode
 
 class BarteClient:
     VALID_ENVIRONMENTS = ["production", "sandbox"]
@@ -96,12 +96,12 @@ class BarteClient:
         response.raise_for_status()
         return PixCharge.from_dict(response.json())
 
-    def get_pix_qrcode(self, charge_id: str) -> Dict[str, str]:
+    def get_pix_qrcode(self, charge_id: str) -> PixQRCode:
         """Get PIX QR Code data for a charge"""
         endpoint = f"{self.base_url}/v1/charges/{charge_id}/pix"
         response = requests.get(endpoint, headers=self.headers)
         response.raise_for_status()
-        return response.json()
+        return PixQRCode.from_dict(response.json())
 
     def simulate_installments(self, amount: int, brand: str) -> InstallmentOptions:
         """Simulate credit card installments"""
