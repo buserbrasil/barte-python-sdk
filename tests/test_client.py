@@ -316,6 +316,14 @@ class TestBarteClient:
 
     def test_client_singleton(self):
         """Test client singleton pattern"""
+        # Reset singleton for initial state
+        BarteClient._instance = None
+
+        # Test uninitialized state
+        with pytest.raises(RuntimeError) as exc_info:
+            BarteClient.get_instance()
+        assert "BarteClient not initialized" in str(exc_info.value)
+
         # First initialization
         client1 = BarteClient(api_key="test_key", environment="sandbox")
         assert BarteClient.get_instance() == client1
