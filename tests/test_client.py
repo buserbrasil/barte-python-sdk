@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime
 from unittest.mock import patch, Mock
-from barte import BarteClient, Charge, CardToken, Refund, InstallmentOptions, PixCharge
+from barte import BarteClient, Charge, CardToken, Refund, InstallmentOptions, PixCharge, PixQRCode
 
 @pytest.fixture
 def barte_client():
@@ -312,6 +312,29 @@ class TestBarteClient:
         mock_get.assert_called_once_with(
             f"https://sandbox-api.barte.com.br/v1/charges/{pix_charge.id}/pix",
             headers={"Authorization": "Bearer test_key", "Content-Type": "application/json"}
+        )
+
+    @patch('requests.get')
+    def test_get_pix_qrcode(self, mock_get, barte_client):
+        """Test getting PIX QR code directly"""
+        qr_code_response = {
+            "qr_code": "00020126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426614174000",
+            "qr_code_image": "https://api.barte.com.br/v1/qrcodes/123456.png",
+            "copy_and_paste": "00020126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426614174000"
+        }
+        mock_get.return_value.json.return_value = qr_code_response
+        mock_get.return_value.raise_for_status = Mock()
+
+        qr_code = barte_client.get_pix_qrcode("chr_123456789")
+        
+        assert isinstance(qr_code, PixQRCode)
+        assert qr_code.qr_code == qr_code_response["qr_code"]
+        assert qr_code.qr_code_image == qr_code_response["qr_code_image"]
+        assert qr_code.copy_and_paste == qr_code_response["copy_and_paste"]
+
+        mock_get.assert_called_once_with(
+            f"{barte_client.base_url}/v1/charges/chr_123456789/pix",
+            headers=barte_client.headers
         )
 
     def test_client_singleton(self):
