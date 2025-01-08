@@ -1,6 +1,14 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List, Dict, Any
+from dacite import Config
+
+# Default config for dacite with datetime conversion
+DACITE_CONFIG = Config(
+    type_hooks={
+        datetime: lambda x: datetime.fromisoformat(x.replace("Z", "+00:00")) if isinstance(x, str) else x
+    }
+)
 
 @dataclass
 class Customer:
@@ -19,12 +27,6 @@ class CardToken:
     expiration_year: int
     brand: str
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CardToken":
-        if isinstance(data["created_at"], str):
-            data["created_at"] = datetime.fromisoformat(data["created_at"].replace("Z", "+00:00"))
-        return cls(**data)
-
 @dataclass
 class Charge:
     id: str
@@ -38,21 +40,6 @@ class Charge:
     metadata: Optional[Dict[str, Any]] = None
     installments: Optional[int] = None
     installment_amount: Optional[int] = None
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Charge":
-        # Copy data to avoid modifying the original
-        data = data.copy()
-        
-        # Convert customer if it's a dict
-        if isinstance(data["customer"], dict):
-            data["customer"] = Customer(**data["customer"])
-        
-        # Convert created_at if it's a string
-        if isinstance(data["created_at"], str):
-            data["created_at"] = datetime.fromisoformat(data["created_at"].replace("Z", "+00:00"))
-        
-        return cls(**data)
 
     def refund(self, amount: Optional[int] = None) -> "Refund":
         from .client import BarteClient
@@ -85,12 +72,6 @@ class Refund:
     created_at: datetime
     metadata: Optional[Dict[str, Any]] = None
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Refund":
-        if isinstance(data["created_at"], str):
-            data["created_at"] = datetime.fromisoformat(data["created_at"].replace("Z", "+00:00"))
-        return cls(**data)
-
 @dataclass
 class InstallmentSimulation:
     installments: int
@@ -102,17 +83,8 @@ class InstallmentSimulation:
 class InstallmentOptions:
     installments: List[InstallmentSimulation]
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "InstallmentOptions":
-        options = [InstallmentSimulation(**item) for item in data["installments"]]
-        return cls(installments=options)
-
 @dataclass
 class PixQRCode:
     qr_code: str
     qr_code_image: str
-    copy_and_paste: str
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PixQRCode":
-        return cls(**data) 
+    copy_and_paste: str 

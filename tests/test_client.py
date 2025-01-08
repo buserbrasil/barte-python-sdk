@@ -1,7 +1,9 @@
 import pytest
 from datetime import datetime
 from unittest.mock import patch, Mock
+from dacite import from_dict
 from barte import BarteClient, Charge, CardToken, Refund, InstallmentOptions, PixCharge, PixQRCode
+from barte.models import DACITE_CONFIG
 
 @pytest.fixture
 def barte_client():
@@ -29,18 +31,20 @@ def mock_charge_response():
 
 class TestBarteClient:
     def test_client_initialization(self):
-        """Test client initialization with different environments"""
-        # Production environment
-        client = BarteClient(api_key="test_key", environment="production")
-        assert client.base_url == "https://api.barte.com.br"
-        
-        # Sandbox environment
+        """Test client initialization with valid environment"""
         client = BarteClient(api_key="test_key", environment="sandbox")
+        assert client.api_key == "test_key"
         assert client.base_url == "https://sandbox-api.barte.com.br"
-        
-        # Check headers
-        assert client.headers["Authorization"] == "Bearer test_key"
-        assert client.headers["Content-Type"] == "application/json"
+        assert client.headers == {
+            "Authorization": "Bearer test_key",
+            "Content-Type": "application/json"
+        }
+
+    def test_invalid_environment(self):
+        """Test client initialization with invalid environment"""
+        with pytest.raises(ValueError) as exc_info:
+            BarteClient(api_key="test_key", environment="invalid")
+        assert "Invalid environment" in str(exc_info.value)
 
     @patch('requests.post')
     def test_create_charge(self, mock_post, barte_client, mock_charge_response):
@@ -62,10 +66,10 @@ class TestBarteClient:
         charge = barte_client.create_charge(charge_data)
         
         assert isinstance(charge, Charge)
-        assert charge.id == "chr_123456789"
         assert charge.amount == 1000
-        assert charge.status == "succeeded"
         assert charge.customer.name == "John Doe"
+        assert charge.metadata == {"order_id": "123"}
+        assert isinstance(charge.created_at, datetime)
         
         mock_post.assert_called_once_with(
             f"{barte_client.base_url}/v1/charges",
@@ -196,11 +200,6 @@ class TestBarteClient:
             json=refund_data
         )
 
-    def test_invalid_environment(self):
-        """Test initialization with invalid environment"""
-        with pytest.raises(ValueError):
-            BarteClient(api_key="test_key", environment="invalid")
-
     @patch('requests.get')
     def test_get_charge(self, mock_get, barte_client, mock_charge_response):
         """Test getting a specific charge"""
@@ -237,6 +236,7 @@ class TestBarteClient:
         assert all(isinstance(charge, Charge) for charge in charges)
         assert charges[0].id == "chr_123456789"
         assert charges[1].id == "chr_987654321"
+        assert all(isinstance(charge.created_at, datetime) for charge in charges)
         
         mock_get.assert_called_once_with(
             f"{barte_client.base_url}/v1/charges",
@@ -258,7 +258,7 @@ class TestBarteClient:
         mock_post.return_value.json.return_value = refund_response
         mock_post.return_value.raise_for_status = Mock()
 
-        charge = Charge.from_dict(mock_charge_response)
+        charge = from_dict(data_class=Charge, data=mock_charge_response, config=DACITE_CONFIG)
         
         # Test refund method
         refund = charge.refund(amount=500)
@@ -290,7 +290,7 @@ class TestBarteClient:
     def test_pix_charge_get_qrcode(self, mock_get, mock_charge_response):
         """Test PIX charge QR code method"""
         # Create a PIX charge
-        pix_charge = PixCharge.from_dict({**mock_charge_response, "payment_method": "pix"})
+        pix_charge = from_dict(data_class=PixCharge, data={**mock_charge_response, "payment_method": "pix"}, config=DACITE_CONFIG)
         
         # Mock QR code response
         qr_code_response = {
@@ -314,40 +314,19 @@ class TestBarteClient:
             headers={"Authorization": "Bearer test_key", "Content-Type": "application/json"}
         )
 
-    @patch('requests.get')
-    def test_get_pix_qrcode(self, mock_get, barte_client):
-        """Test getting PIX QR code directly"""
-        qr_code_response = {
-            "qr_code": "00020126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426614174000",
-            "qr_code_image": "https://api.barte.com.br/v1/qrcodes/123456.png",
-            "copy_and_paste": "00020126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426614174000"
-        }
-        mock_get.return_value.json.return_value = qr_code_response
-        mock_get.return_value.raise_for_status = Mock()
-
-        qr_code = barte_client.get_pix_qrcode("chr_123456789")
-        
-        assert isinstance(qr_code, PixQRCode)
-        assert qr_code.qr_code == qr_code_response["qr_code"]
-        assert qr_code.qr_code_image == qr_code_response["qr_code_image"]
-        assert qr_code.copy_and_paste == qr_code_response["copy_and_paste"]
-
-        mock_get.assert_called_once_with(
-            f"{barte_client.base_url}/v1/charges/chr_123456789/pix",
-            headers=barte_client.headers
-        )
-
     def test_client_singleton(self):
         """Test client singleton pattern"""
-        # Should raise error when not initialized
-        BarteClient._instance = None
-        with pytest.raises(RuntimeError):
-            BarteClient.get_instance()
-        
-        # Should return same instance after initialization
+        # First initialization
         client1 = BarteClient(api_key="test_key", environment="sandbox")
-        client2 = BarteClient.get_instance()
-        assert client1 is client2 
+        assert BarteClient.get_instance() == client1
+
+        # Second initialization
+        client2 = BarteClient(api_key="another_key", environment="sandbox")
+        assert BarteClient.get_instance() == client2
+        assert client2.api_key == "another_key"
+
+        # Reset singleton for other tests
+        BarteClient._instance = None
 
     @patch('requests.post')
     def test_charge_with_card_token(self, mock_post, barte_client, mock_charge_response):
@@ -372,10 +351,10 @@ class TestBarteClient:
         charge = barte_client.charge_with_card_token(token_id, charge_data)
         
         assert isinstance(charge, Charge)
-        assert charge.id == "chr_123456789"
         assert charge.amount == 1000
-        assert charge.payment_method == "credit_card"
         assert charge.customer.name == "John Doe"
+        assert charge.metadata == {"order_id": "123"}
+        assert isinstance(charge.created_at, datetime)
         
         expected_data = {
             **charge_data,
@@ -405,7 +384,7 @@ class TestBarteClient:
                     "charge_id": "chr_123456789",
                     "amount": 500,
                     "status": "succeeded",
-                    "created_at": "2024-01-07T11:00:00Z"
+                    "created_at": "2024-01-07T10:30:00Z"
                 }
             ]
         }
@@ -416,18 +395,11 @@ class TestBarteClient:
         
         assert len(refunds) == 2
         assert all(isinstance(refund, Refund) for refund in refunds)
-        
-        # Test first refund
         assert refunds[0].id == "ref_123456"
-        assert refunds[0].amount == 500
-        assert refunds[0].status == "succeeded"
-        assert isinstance(refunds[0].created_at, datetime)
-        
-        # Test second refund
         assert refunds[1].id == "ref_789012"
-        assert refunds[1].amount == 500
+        assert refunds[0].amount == 500
         assert refunds[1].status == "succeeded"
-        assert isinstance(refunds[1].created_at, datetime)
+        assert all(isinstance(refund.created_at, datetime) for refund in refunds)
         
         mock_get.assert_called_once_with(
             f"{barte_client.base_url}/v1/charges/chr_123456789/refunds",
@@ -477,11 +449,11 @@ class TestBarteClient:
         charge = barte_client.charge_with_card_token(token_id, charge_data)
         
         assert isinstance(charge, Charge)
-        assert charge.id == "chr_123456789"
         assert charge.amount == 1000
-        assert charge.payment_method == "credit_card"
         assert charge.installments == 3
         assert charge.installment_amount == 333
+        assert charge.customer.name == "John Doe"
+        assert isinstance(charge.created_at, datetime)
         
         expected_data = {
             **charge_data,

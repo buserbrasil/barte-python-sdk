@@ -8,7 +8,8 @@ setup(
     author_email="thiago.avelino@buser.com.br",
     packages=find_packages(),
     install_requires=[
-        "requests>=2.25.0"
+        "requests>=2.25.0",
+        "dacite>=1.8.0"
     ],
     python_requires=">=3.10",
     classifiers=[
