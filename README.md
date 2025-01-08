@@ -35,6 +35,11 @@ card_token = client.create_card_token(
 )
 ```
 
+## Documentation
+
+- [OpenAPI Documentation](https://app.swaggerhub.com/apis-docs/b6782/barte-api/1.0.0#/) - Complete API reference
+- [Integration Guide](https://barte.notion.site/Guia-de-Integra-o-d25d74ee606f4b9ab33efd9e6a4ea22e#460c4da9a5904fc79b789492438bafc4) - Detailed integration guide with examples and best practices
+
 ## Running Tests
 
 To run the test suite, follow these steps:
