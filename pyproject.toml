@@ -12,7 +12,7 @@ authors = [{ name = "Thiago Avelino", email = "thiago.avelino@buser.com.br" },
     { name = "Marcos Grandesso", email = "marcos.viana@buser.com.br" },
 ]
 dependencies = [
-    "requests>=2.25.0"
+    "requests>=2.25.0", "uv"
 ]
 requires-python = ">=3.10"
 
