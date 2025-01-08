@@ -11,10 +11,9 @@ setup(
         "requests>=2.25.0",
         "dacite>=1.8.0"
     ],
-    python_requires=">=3.10",
+    python_requires=">=3.11",
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
     ],
