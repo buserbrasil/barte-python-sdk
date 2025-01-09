@@ -5,7 +5,7 @@ description = "Python SDK for integration with Barte API"
 requires-python = ">=3.11"
 authors = [{ name = "Thiago Avelino", email = "thiago.avelino@buser.com.br" },
     { name = "Erle Carrara", email = "erle.carrara@buser.com.br" },
-    { name = "Walisson Filipe", email = "walison.filipe@buser.com.br" },
+    { name = "Walison Filipe", email = "walison.filipe@buser.com.br" },
     { name = "Marcos Grandesso", email = "marcos.viana@buser.com.br" },
 ]
 dependencies = ["requests==2"]
