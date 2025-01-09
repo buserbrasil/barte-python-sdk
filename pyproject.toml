@@ -9,6 +9,10 @@ authors = [{ name = "Thiago Avelino", email = "thiago.avelino@buser.com.br" },
     { name = "Marcos Grandesso", email = "marcos.viana@buser.com.br" },
 ]
 dependencies = ["requests==2"]
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 
 [tool.uv]
 package = true
