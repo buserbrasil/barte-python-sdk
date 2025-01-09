@@ -12,9 +12,9 @@ authors = [{ name = "Thiago Avelino", email = "thiago.avelino@buser.com.br" },
     { name = "Marcos Grandesso", email = "marcos.viana@buser.com.br" },
 ]
 dependencies = [
-    "requests>=2.25.0", "uv"
+    "requests>=2.25.0"
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 classifiers = [
     "Programming Language :: Python :: 3",
