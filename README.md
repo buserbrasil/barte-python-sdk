@@ -66,7 +66,7 @@ cd barte-python-sdk
 
 2. Install the package in development mode:
 ```bash
-pip install -e .
+uv pip install -e .
 ```
 
 3. Run specific examples:
