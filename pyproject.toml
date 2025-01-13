@@ -10,7 +10,7 @@ authors = [{ name = "Thiago Avelino", email = "thiago.avelino@buser.com.br" },
 ]
 dependencies = ["requests==2",
                 "dacite==1",
-                "python-dateutil=2"
+                "python-dateutil>=2.8.0,<3"
             ]
 classifiers = [
         "Programming Language :: Python :: 3",
