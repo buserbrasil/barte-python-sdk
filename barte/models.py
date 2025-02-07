@@ -6,16 +6,16 @@ from dateutil.parser import parse as parse_date
 
 # Default config for dacite with datetime conversion
 DACITE_CONFIG = Config(
-    type_hooks={
-        datetime: lambda x: parse_date(x) if isinstance(x, str) else x
-    }
+    type_hooks={datetime: lambda x: parse_date(x) if isinstance(x, str) else x}
 )
+
 
 @dataclass
 class Customer:
     name: str
     tax_id: str
     email: str
+
 
 @dataclass
 class CardToken:
@@ -27,6 +27,7 @@ class CardToken:
     expiration_month: int
     expiration_year: int
     brand: str
+
 
 @dataclass
 class Charge:
@@ -44,11 +45,16 @@ class Charge:
 
     def refund(self, amount: Optional[int] = None) -> "Refund":
         from .client import BarteClient
-        return BarteClient.get_instance().refund_charge(self.id, {"amount": amount} if amount else None)
+
+        return BarteClient.get_instance().refund_charge(
+            self.id, {"amount": amount} if amount else None
+        )
 
     def cancel(self) -> "Charge":
         from .client import BarteClient
+
         return BarteClient.get_instance().cancel_charge(self.id)
+
 
 @dataclass
 class PixCharge(Charge):
@@ -58,11 +64,13 @@ class PixCharge(Charge):
 
     def get_qr_code(self) -> "PixCharge":
         from .client import BarteClient
+
         qr_data = BarteClient.get_instance().get_pix_qrcode(self.id)
         self.qr_code = qr_data.qr_code
         self.qr_code_image = qr_data.qr_code_image
         self.copy_and_paste = qr_data.copy_and_paste
         return self
+
 
 @dataclass
 class Refund:
@@ -73,6 +81,7 @@ class Refund:
     created_at: datetime
     metadata: Optional[Dict[str, Any]] = None
 
+
 @dataclass
 class InstallmentSimulation:
     installments: int
@@ -80,12 +89,57 @@ class InstallmentSimulation:
     total: int
     interest_rate: float
 
+
 @dataclass
 class InstallmentOptions:
     installments: List[InstallmentSimulation]
+
 
 @dataclass
 class PixQRCode:
     qr_code: str
     qr_code_image: str
-    copy_and_paste: str 
+    copy_and_paste: str
+
+
+@dataclass
+class Buyer:
+    uuid: str
+    document: str
+    name: str
+    countryCode: str
+    phone: str
+    email: str
+    alternativeEmail: str
+
+
+@dataclass
+class SortInfo:
+    unsorted: bool
+    sorted: bool
+    empty: bool
+
+
+@dataclass
+class Pageable:
+    sort: SortInfo
+    pageNumber: int
+    pageSize: int
+    offset: int
+    paged: bool
+    unpaged: bool
+
+
+@dataclass
+class BuyerList:
+    content: List[Buyer]
+    pageable: Pageable
+    totalPages: int
+    totalElements: int
+    last: bool
+    numberOfElements: int
+    size: int
+    number: int
+    sort: SortInfo
+    first: bool
+    empty: bool
