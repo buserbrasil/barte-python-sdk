@@ -1,4 +1,4 @@
-from barte import BarteClient, Charge, PixCharge
+from barte import BarteClient
 
 def main():
     # Initialize the client
