@@ -2,10 +2,19 @@ from typing import Dict, Any, Optional, List
 import requests
 from dacite import from_dict
 from .models import (
-    Charge, CardToken, Refund, InstallmentOptions,
-    PixCharge, PixQRCode, DACITE_CONFIG, Config,
-    InstallmentSimulation, Buyer, BuyerList
+    Charge,
+    CardToken,
+    Refund,
+    InstallmentOptions,
+    PixCharge,
+    PixQRCode,
+    DACITE_CONFIG,
+    Config,
+    InstallmentSimulation,
+    Buyer,
+    BuyerList,
 )
+
 
 class BarteClient:
     VALID_ENVIRONMENTS = ["production", "sandbox"]
@@ -23,20 +32,25 @@ class BarteClient:
             ValueError: If the environment is not "production" or "sandbox"
         """
         if environment not in self.VALID_ENVIRONMENTS:
-            raise ValueError(f"Invalid environment. Must be one of: {', '.join(self.VALID_ENVIRONMENTS)}")
+            raise ValueError(
+                f"Invalid environment. Must be one of: {', '.join(self.VALID_ENVIRONMENTS)}"
+            )
 
         self.api_key = api_key
-        self.base_url = "https://api.barte.com" if environment == "production" else "https://sandbox-api.barte.com"
-        self.headers = {
-            "X-Token-Api": api_key,
-            "Content-Type": "application/json"
-        }
+        self.base_url = (
+            "https://api.barte.com"
+            if environment == "production"
+            else "https://sandbox-api.barte.com"
+        )
+        self.headers = {"X-Token-Api": api_key, "Content-Type": "application/json"}
         BarteClient._instance = self
 
     @classmethod
     def get_instance(cls) -> "BarteClient":
         if cls._instance is None:
-            raise RuntimeError("BarteClient not initialized. Call BarteClient(api_key) first.")
+            raise RuntimeError(
+                "BarteClient not initialized. Call BarteClient(api_key) first."
+            )
         return cls._instance
 
     def create_charge(self, data: Dict[str, Any]) -> Charge:
@@ -58,7 +72,10 @@ class BarteClient:
         endpoint = f"{self.base_url}/v1/charges"
         response = requests.get(endpoint, headers=self.headers, params=params)
         response.raise_for_status()
-        return [from_dict(data_class=Charge, data=item, config=DACITE_CONFIG) for item in response.json()["data"]]
+        return [
+            from_dict(data_class=Charge, data=item, config=DACITE_CONFIG)
+            for item in response.json()["data"]
+        ]
 
     def cancel_charge(self, charge_id: str) -> Charge:
         """Cancel a specific charge"""
@@ -77,14 +94,18 @@ class BarteClient:
         endpoint = f"{self.base_url}/v2/buyers"
         response = requests.get(endpoint, params=filters, headers=self.headers)
         response.raise_for_status()
-        return from_dict(data_class=BuyerList, data=response.json(), config=DACITE_CONFIG)
+        return from_dict(
+            data_class=BuyerList, data=response.json(), config=DACITE_CONFIG
+        )
 
     def create_card_token(self, card_data: Dict[str, Any]) -> CardToken:
         """Create a token for a credit card"""
-        endpoint = f"{self.base_url}/v1/tokens"
+        endpoint = f"{self.base_url}/v2/cards"
         response = requests.post(endpoint, headers=self.headers, json=card_data)
         response.raise_for_status()
-        return from_dict(data_class=CardToken, data=response.json(), config=DACITE_CONFIG)
+        return from_dict(
+            data_class=CardToken, data=response.json(), config=DACITE_CONFIG
+        )
 
     def charge_with_card_token(self, token_id: str, data: Dict[str, Any]) -> Charge:
         """Create a charge using an existing card token"""
@@ -93,7 +114,7 @@ class BarteClient:
         transaction_data = {
             **data,
             "payment_method": "credit_card",
-            "card_token": token_id
+            "card_token": token_id,
         }
 
         response = requests.post(endpoint, headers=self.headers, json=transaction_data)
@@ -104,14 +125,13 @@ class BarteClient:
         """Create a PIX charge"""
         endpoint = f"{self.base_url}/v1/charges"
 
-        pix_data = {
-            **data,
-            "payment_method": "pix"
-        }
+        pix_data = {**data, "payment_method": "pix"}
 
         response = requests.post(endpoint, headers=self.headers, json=pix_data)
         response.raise_for_status()
-        return from_dict(data_class=PixCharge, data=response.json(), config=DACITE_CONFIG)
+        return from_dict(
+            data_class=PixCharge, data=response.json(), config=DACITE_CONFIG
+        )
 
     def get_pix_qrcode(self, charge_id: str) -> PixQRCode:
         """Get PIX QR Code data for a charge"""
@@ -129,7 +149,7 @@ class BarteClient:
         return from_dict(
             data_class=InstallmentOptions,
             data=response.json(),
-            config=Config(cast=[List[InstallmentSimulation]])
+            config=Config(cast=[List[InstallmentSimulation]]),
         )
 
     def get_charge_refunds(self, charge_id: str) -> List[Refund]:
@@ -137,9 +157,14 @@ class BarteClient:
         endpoint = f"{self.base_url}/v1/charges/{charge_id}/refunds"
         response = requests.get(endpoint, headers=self.headers)
         response.raise_for_status()
-        return [from_dict(data_class=Refund, data=item, config=DACITE_CONFIG) for item in response.json()["data"]]
+        return [
+            from_dict(data_class=Refund, data=item, config=DACITE_CONFIG)
+            for item in response.json()["data"]
+        ]
 
-    def refund_charge(self, charge_id: str, data: Optional[Dict[str, Any]] = None) -> Refund:
+    def refund_charge(
+        self, charge_id: str, data: Optional[Dict[str, Any]] = None
+    ) -> Refund:
         """Refund a charge"""
         endpoint = f"{self.base_url}/v1/charges/{charge_id}/refund"
         response = requests.post(endpoint, headers=self.headers, json=data or {})

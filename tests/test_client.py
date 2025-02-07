@@ -115,20 +115,25 @@ class TestBarteClient:
     def test_create_card_token(self, mock_post, barte_client):
         """Test creating a card token"""
         mock_response = {
-            "id": "tok_123456",
-            "type": "card",
-            "created_at": "2024-03-20T10:00:00Z",
-            "last_digits": "1111",
-            "holder_name": "John Doe",
-            "expiration_month": 12,
-            "expiration_year": 2025,
-            "brand": "visa",
+            "uuid": "790e8637-c16b-4ed5-a9bf-faec76dbc5aa",
+            "status": "ACTIVE",
+            "createdAt": "2025-02-07",
+            "brand": "mastercard",
+            "cardHolderName": "John Doe",
+            "cvvChecked": True,
+            "fingerprint": "MLvWOfRXBcGIvK9cWSj9vLy0yhmBMzbxldLSJHYvEEw=",
+            "first6digits": "538363",
+            "last4digits": "0891",
+            "buyerId": "5929a30b-e68f-4c81-9481-d25adbabafeb",
+            "expirationMonth": "12",
+            "expirationYear": "2025",
+            "cardId": "9dc2ffe0-d588-44b7-b74d-d5ad88a31143",
         }
         mock_post.return_value.json.return_value = mock_response
         mock_post.return_value.raise_for_status = Mock()
 
         card_data = {
-            "number": "4111111111111111",
+            "number": "5383630891",
             "holder_name": "John Doe",
             "expiration_month": 12,
             "expiration_year": 2025,
@@ -138,13 +143,13 @@ class TestBarteClient:
         token = barte_client.create_card_token(card_data)
 
         assert isinstance(token, CardToken)
-        assert token.id == "tok_123456"
-        assert token.last_digits == "1111"
-        assert token.holder_name == "John Doe"
-        assert isinstance(token.created_at, datetime)
+        assert token.uuid == "790e8637-c16b-4ed5-a9bf-faec76dbc5aa"
+        assert token.last4digits == "0891"
+        assert token.cardHolderName == "John Doe"
+        assert isinstance(token.createdAt, datetime)
 
         mock_post.assert_called_once_with(
-            f"{barte_client.base_url}/v1/tokens",
+            f"{barte_client.base_url}/v2/cards",
             headers=barte_client.headers,
             json=card_data,
         )

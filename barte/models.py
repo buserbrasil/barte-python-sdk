@@ -19,14 +19,19 @@ class Customer:
 
 @dataclass
 class CardToken:
-    id: str
-    type: str
-    created_at: datetime
-    last_digits: str
-    holder_name: str
-    expiration_month: int
-    expiration_year: int
+    uuid: str
+    status: str
+    createdAt: datetime
     brand: str
+    cardHolderName: str
+    cvvChecked: bool
+    fingerprint: str
+    first6digits: str
+    last4digits: str
+    buyerId: str
+    expirationMonth: str
+    expirationYear: str
+    cardId: str
 
 
 @dataclass
