@@ -4,7 +4,7 @@ from dacite import from_dict
 from .models import (
     Charge, CardToken, Refund, InstallmentOptions,
     PixCharge, PixQRCode, DACITE_CONFIG, Config,
-    InstallmentSimulation
+    InstallmentSimulation, Buyer, BuyerList
 )
 
 class BarteClient:
@@ -28,7 +28,7 @@ class BarteClient:
         self.api_key = api_key
         self.base_url = "https://api.barte.com" if environment == "production" else "https://sandbox-api.barte.com"
         self.headers = {
-            "Authorization": f"Bearer {api_key}",
+            "X-Token-Api": api_key,
             "Content-Type": "application/json"
         }
         BarteClient._instance = self
@@ -66,6 +66,18 @@ class BarteClient:
         response = requests.post(endpoint, headers=self.headers)
         response.raise_for_status()
         return from_dict(data_class=Charge, data=response.json(), config=DACITE_CONFIG)
+
+    def create_buyer(self, buyer_data: Dict[str, any]) -> Buyer:
+        endpoint = f"{self.base_url}/v2/buyers"
+        response = requests.post(endpoint, headers=self.headers, json=buyer_data)
+        response.raise_for_status()
+        return from_dict(data_class=Buyer, data=response.json(), config=DACITE_CONFIG)
+
+    def get_buyer(self, filters: Dict[str, any]) -> BuyerList:
+        endpoint = f"{self.base_url}/v2/buyers"
+        response = requests.get(endpoint, params=filters, headers=self.headers)
+        response.raise_for_status()
+        return from_dict(data_class=BuyerList, data=response.json(), config=DACITE_CONFIG)
 
     def create_card_token(self, card_data: Dict[str, Any]) -> CardToken:
         """Create a token for a credit card"""
