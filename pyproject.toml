@@ -8,10 +8,11 @@ authors = [{ name = "Thiago Avelino", email = "thiago.avelino@buser.com.br" },
     { name = "Walison Filipe", email = "walison.filipe@buser.com.br" },
     { name = "Marcos Grandesso", email = "marcos.viana@buser.com.br" },
 ]
-dependencies = ["requests>=2.3,<3",
-                "dacite==1.9.2",
-                "python-dateutil>=2.8.0,<3"
-            ]
+dependencies = [
+    "requests>=2.3,<3",
+    "dacite==1.9.2",
+    "python-dateutil>=2.8.0,<3",
+]
 classifiers = [
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.11",
@@ -24,5 +25,6 @@ dev-dependencies = [
     "pytest>=7.0.0",
     "requests-mock>=1.10.0",
     "pytest-cov>=4.0.0",
-    "python-dateutil>=2.8.0"
+    "python-dateutil>=2.8.0",
+    "ruff>=0.9.5",
 ]
