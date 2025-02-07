@@ -14,19 +14,19 @@ class BarteClient:
     def __init__(self, api_key: str, environment: str = "production"):
         """
         Initialize the Barte API client
-        
+
         Args:
             api_key: API key provided by Barte
             environment: Environment ("production" or "sandbox")
-            
+
         Raises:
             ValueError: If the environment is not "production" or "sandbox"
         """
         if environment not in self.VALID_ENVIRONMENTS:
             raise ValueError(f"Invalid environment. Must be one of: {', '.join(self.VALID_ENVIRONMENTS)}")
-            
+
         self.api_key = api_key
-        self.base_url = "https://api.barte.com.br" if environment == "production" else "https://sandbox-api.barte.com.br"
+        self.base_url = "https://api.barte.com" if environment == "production" else "https://sandbox-api.barte.com"
         self.headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
@@ -77,13 +77,13 @@ class BarteClient:
     def charge_with_card_token(self, token_id: str, data: Dict[str, Any]) -> Charge:
         """Create a charge using an existing card token"""
         endpoint = f"{self.base_url}/v1/charges"
-        
+
         transaction_data = {
             **data,
             "payment_method": "credit_card",
             "card_token": token_id
         }
-        
+
         response = requests.post(endpoint, headers=self.headers, json=transaction_data)
         response.raise_for_status()
         return from_dict(data_class=Charge, data=response.json(), config=DACITE_CONFIG)
@@ -91,12 +91,12 @@ class BarteClient:
     def create_pix_charge(self, data: Dict[str, Any]) -> PixCharge:
         """Create a PIX charge"""
         endpoint = f"{self.base_url}/v1/charges"
-        
+
         pix_data = {
             **data,
             "payment_method": "pix"
         }
-        
+
         response = requests.post(endpoint, headers=self.headers, json=pix_data)
         response.raise_for_status()
         return from_dict(data_class=PixCharge, data=response.json(), config=DACITE_CONFIG)
@@ -132,4 +132,4 @@ class BarteClient:
         endpoint = f"{self.base_url}/v1/charges/{charge_id}/refund"
         response = requests.post(endpoint, headers=self.headers, json=data or {})
         response.raise_for_status()
-        return from_dict(data_class=Refund, data=response.json(), config=DACITE_CONFIG) 
+        return from_dict(data_class=Refund, data=response.json(), config=DACITE_CONFIG)

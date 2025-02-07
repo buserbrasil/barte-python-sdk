@@ -34,7 +34,7 @@ class TestBarteClient:
         """Test client initialization with valid environment"""
         client = BarteClient(api_key="test_key", environment="sandbox")
         assert client.api_key == "test_key"
-        assert client.base_url == "https://sandbox-api.barte.com.br"
+        assert client.base_url == "https://sandbox-api.barte.com"
         assert client.headers == {
             "Authorization": "Bearer test_key",
             "Content-Type": "application/json"
@@ -64,13 +64,13 @@ class TestBarteClient:
         }
 
         charge = barte_client.create_charge(charge_data)
-        
+
         assert isinstance(charge, Charge)
         assert charge.amount == 1000
         assert charge.customer.name == "John Doe"
         assert charge.metadata == {"order_id": "123"}
         assert isinstance(charge.created_at, datetime)
-        
+
         mock_post.assert_called_once_with(
             f"{barte_client.base_url}/v1/charges",
             headers=barte_client.headers,
@@ -95,12 +95,12 @@ class TestBarteClient:
         }
 
         charge = barte_client.create_pix_charge(pix_data)
-        
+
         assert isinstance(charge, PixCharge)
         assert charge.payment_method == "pix"
         assert charge.amount == 1000
         assert charge.customer.name == "John Doe"
-        
+
         expected_data = {**pix_data, "payment_method": "pix"}
         mock_post.assert_called_once_with(
             f"{barte_client.base_url}/v1/charges",
@@ -133,13 +133,13 @@ class TestBarteClient:
         }
 
         token = barte_client.create_card_token(card_data)
-        
+
         assert isinstance(token, CardToken)
         assert token.id == "tok_123456"
         assert token.last_digits == "1111"
         assert token.holder_name == "John Doe"
         assert isinstance(token.created_at, datetime)
-        
+
         mock_post.assert_called_once_with(
             f"{barte_client.base_url}/v1/tokens",
             headers=barte_client.headers,
@@ -160,12 +160,12 @@ class TestBarteClient:
         mock_get.return_value.raise_for_status = Mock()
 
         options = barte_client.simulate_installments(amount=1000, brand="visa")
-        
+
         assert isinstance(options, InstallmentOptions)
         assert len(options.installments) == 3
         assert options.installments[0].amount == 1000
         assert options.installments[1].interest_rate == 2.0
-        
+
         mock_get.assert_called_once_with(
             f"{barte_client.base_url}/v1/simulate/installments",
             headers=barte_client.headers,
@@ -187,13 +187,13 @@ class TestBarteClient:
 
         refund_data = {"amount": 1000}
         refund = barte_client.refund_charge("chr_123456789", refund_data)
-        
+
         assert isinstance(refund, Refund)
         assert refund.id == "ref_123456"
         assert refund.amount == 1000
         assert refund.status == "succeeded"
         assert isinstance(refund.created_at, datetime)
-        
+
         mock_post.assert_called_once_with(
             f"{barte_client.base_url}/v1/charges/chr_123456789/refund",
             headers=barte_client.headers,
@@ -207,13 +207,13 @@ class TestBarteClient:
         mock_get.return_value.raise_for_status = Mock()
 
         charge = barte_client.get_charge("chr_123456789")
-        
+
         assert isinstance(charge, Charge)
         assert charge.id == "chr_123456789"
         assert charge.amount == 1000
         assert charge.customer.name == "John Doe"
         assert isinstance(charge.created_at, datetime)
-        
+
         mock_get.assert_called_once_with(
             f"{barte_client.base_url}/v1/charges/chr_123456789",
             headers=barte_client.headers
@@ -231,13 +231,13 @@ class TestBarteClient:
 
         params = {"limit": 2, "starting_after": "chr_0"}
         charges = barte_client.list_charges(params)
-        
+
         assert len(charges) == 2
         assert all(isinstance(charge, Charge) for charge in charges)
         assert charges[0].id == "chr_123456789"
         assert charges[1].id == "chr_987654321"
         assert all(isinstance(charge.created_at, datetime) for charge in charges)
-        
+
         mock_get.assert_called_once_with(
             f"{barte_client.base_url}/v1/charges",
             headers=barte_client.headers,
@@ -259,30 +259,30 @@ class TestBarteClient:
         mock_post.return_value.raise_for_status = Mock()
 
         charge = from_dict(data_class=Charge, data=mock_charge_response, config=DACITE_CONFIG)
-        
+
         # Test refund method
         refund = charge.refund(amount=500)
         assert isinstance(refund, Refund)
         assert refund.amount == 500
         mock_post.assert_called_with(
-            f"https://sandbox-api.barte.com.br/v1/charges/{charge.id}/refund",
+            f"https://sandbox-api.barte.com/v1/charges/{charge.id}/refund",
             headers={"Authorization": "Bearer test_key", "Content-Type": "application/json"},
             json={"amount": 500}
         )
-        
+
         # Mock for cancel - use the original mock response with updated status
         cancel_response = {
             **mock_charge_response,
             "status": "canceled"
         }
         mock_post.return_value.json.return_value = cancel_response
-        
+
         # Test cancel method
         canceled_charge = charge.cancel()
         assert isinstance(canceled_charge, Charge)
         assert canceled_charge.status == "canceled"
         mock_post.assert_called_with(
-            f"https://sandbox-api.barte.com.br/v1/charges/{charge.id}/cancel",
+            f"https://sandbox-api.barte.com/v1/charges/{charge.id}/cancel",
             headers={"Authorization": "Bearer test_key", "Content-Type": "application/json"}
         )
 
@@ -291,11 +291,11 @@ class TestBarteClient:
         """Test PIX charge QR code method"""
         # Create a PIX charge
         pix_charge = from_dict(data_class=PixCharge, data={**mock_charge_response, "payment_method": "pix"}, config=DACITE_CONFIG)
-        
+
         # Mock QR code response
         qr_code_response = {
             "qr_code": "00020126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426614174000",
-            "qr_code_image": "https://api.barte.com.br/v1/qrcodes/123456.png",
+            "qr_code_image": "https://api.barte.com/v1/qrcodes/123456.png",
             "copy_and_paste": "00020126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426614174000"
         }
         mock_get.return_value.json.return_value = qr_code_response
@@ -303,14 +303,14 @@ class TestBarteClient:
 
         # Get QR code
         pix_charge = pix_charge.get_qr_code()
-        
+
         assert isinstance(pix_charge, PixCharge)
         assert pix_charge.qr_code == qr_code_response["qr_code"]
         assert pix_charge.qr_code_image == qr_code_response["qr_code_image"]
         assert pix_charge.copy_and_paste == qr_code_response["copy_and_paste"]
-        
+
         mock_get.assert_called_once_with(
-            f"https://sandbox-api.barte.com.br/v1/charges/{pix_charge.id}/pix",
+            f"https://sandbox-api.barte.com/v1/charges/{pix_charge.id}/pix",
             headers={"Authorization": "Bearer test_key", "Content-Type": "application/json"}
         )
 
@@ -357,13 +357,13 @@ class TestBarteClient:
         }
 
         charge = barte_client.charge_with_card_token(token_id, charge_data)
-        
+
         assert isinstance(charge, Charge)
         assert charge.amount == 1000
         assert charge.customer.name == "John Doe"
         assert charge.metadata == {"order_id": "123"}
         assert isinstance(charge.created_at, datetime)
-        
+
         expected_data = {
             **charge_data,
             "payment_method": "credit_card",
@@ -400,7 +400,7 @@ class TestBarteClient:
         mock_get.return_value.raise_for_status = Mock()
 
         refunds = barte_client.get_charge_refunds("chr_123456789")
-        
+
         assert len(refunds) == 2
         assert all(isinstance(refund, Refund) for refund in refunds)
         assert refunds[0].id == "ref_123456"
@@ -408,7 +408,7 @@ class TestBarteClient:
         assert refunds[0].amount == 500
         assert refunds[1].status == "succeeded"
         assert all(isinstance(refund.created_at, datetime) for refund in refunds)
-        
+
         mock_get.assert_called_once_with(
             f"{barte_client.base_url}/v1/charges/chr_123456789/refunds",
             headers=barte_client.headers
@@ -422,10 +422,10 @@ class TestBarteClient:
         mock_get.return_value.raise_for_status = Mock()
 
         refunds = barte_client.get_charge_refunds("chr_123456789")
-        
+
         assert len(refunds) == 0
         assert isinstance(refunds, list)
-        
+
         mock_get.assert_called_once_with(
             f"{barte_client.base_url}/v1/charges/chr_123456789/refunds",
             headers=barte_client.headers
@@ -455,14 +455,14 @@ class TestBarteClient:
         }
 
         charge = barte_client.charge_with_card_token(token_id, charge_data)
-        
+
         assert isinstance(charge, Charge)
         assert charge.amount == 1000
         assert charge.installments == 3
         assert charge.installment_amount == 333
         assert charge.customer.name == "John Doe"
         assert isinstance(charge.created_at, datetime)
-        
+
         expected_data = {
             **charge_data,
             "payment_method": "credit_card",
@@ -472,4 +472,4 @@ class TestBarteClient:
             f"{barte_client.base_url}/v1/charges",
             headers=barte_client.headers,
             json=expected_data
-        ) 
+        )

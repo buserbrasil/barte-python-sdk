@@ -9,7 +9,7 @@ authors = [{ name = "Thiago Avelino", email = "thiago.avelino@buser.com.br" },
     { name = "Marcos Grandesso", email = "marcos.viana@buser.com.br" },
 ]
 dependencies = ["requests>=2.3,<3",
-                "dacite==1",
+                "dacite==1.9.2",
                 "python-dateutil>=2.8.0,<3"
             ]
 classifiers = [
