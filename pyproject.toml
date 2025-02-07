@@ -8,7 +8,7 @@ authors = [{ name = "Thiago Avelino", email = "thiago.avelino@buser.com.br" },
     { name = "Walison Filipe", email = "walison.filipe@buser.com.br" },
     { name = "Marcos Grandesso", email = "marcos.viana@buser.com.br" },
 ]
-dependencies = ["requests==2",
+dependencies = ["requests>=2.3,<3",
                 "dacite==1",
                 "python-dateutil>=2.8.0,<3"
             ]
