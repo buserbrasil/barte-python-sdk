@@ -62,6 +62,58 @@ class Charge:
 
 
 @dataclass
+class OrderCustomer:
+    document: str
+    type: str
+    documentCountry: str | None
+    name: str
+    email: str
+    phone: str
+    alternativeEmail: str
+
+
+@dataclass
+class OrderCharge:
+    uuid: str
+    title: str
+    expirationDate: str
+    paidDate: datetime
+    value: float
+    paymentMethod: str
+    status: str
+    customer: OrderCustomer
+    authorizationCode: str
+    authorizationNsu: str
+
+
+@dataclass
+class Order:
+    uuid: str
+    status: str
+    title: str
+    description: str
+    value: float
+    installments: int
+    startDate: datetime
+    payment: str
+    customer: OrderCustomer
+    idempotencyKey: str
+    charges: List[OrderCharge]
+
+    def refund(self, amount: Optional[int] = None) -> "Refund":
+        from .client import BarteClient
+
+        return BarteClient.get_instance().refund_charge(
+            self.id, {"amount": amount} if amount else None
+        )
+
+    def cancel(self) -> "Charge":
+        from .client import BarteClient
+
+        return BarteClient.get_instance().cancel_charge(self.id)
+
+
+@dataclass
 class PixCharge(Charge):
     qr_code: Optional[str] = None
     qr_code_image: Optional[str] = None

@@ -2,8 +2,15 @@ import pytest
 from datetime import datetime
 from unittest.mock import patch, Mock
 from dacite import from_dict
-from barte import BarteClient, Charge, CardToken, Refund, InstallmentOptions, PixCharge
-from barte.models import DACITE_CONFIG
+from barte import (
+    BarteClient,
+    Charge,
+    CardToken,
+    Refund,
+    InstallmentOptions,
+    PixCharge,
+)
+from barte.models import DACITE_CONFIG, Order
 
 
 @pytest.fixture
@@ -11,6 +18,51 @@ def barte_client():
     client = BarteClient(api_key="test_key", environment="sandbox")
     BarteClient._instance = client  # Set instance for model methods
     return client
+
+
+@pytest.fixture
+def mock_order_response():
+    return {
+        "uuid": "e51e67b3-8dda-4bf9-ab1b-5d5504439bfd",
+        "status": "PAID",
+        "title": "Barte - Postman - h6C",
+        "description": "Barte - Postman - oZ2",
+        "value": 60,
+        "installments": 1,
+        "startDate": "2025-02-07",
+        "payment": "CREDIT_CARD_EARLY_SELLER",
+        "customer": {
+            "document": "19340911032",
+            "type": "CPF",
+            "documentCountry": "BR",
+            "name": "John Doe",
+            "email": "johndoe@email.com",
+            "phone": "11999999999",
+            "alternativeEmail": "",
+        },
+        "idempotencyKey": "349cea7a-6a52-4edd-9c73-7773a75bf05d",
+        "charges": [
+            {
+                "uuid": "35b45f90-11bc-448a-bcb4-969a9697d4d5",
+                "title": "Barte - Postman - h6C",
+                "expirationDate": "2025-02-07",
+                "paidDate": "2025-02-07",
+                "value": 60.00,
+                "paymentMethod": "CREDIT_CARD_EARLY_SELLER",
+                "status": "PAID",
+                "customer": {
+                    "document": "19340911032",
+                    "type": "CPF",
+                    "name": "ClienteExterno-sTZ4 ",
+                    "email": "ClienteExterno-sTZ4@email.com",
+                    "phone": "11999999999",
+                    "alternativeEmail": "",
+                },
+                "authorizationCode": "8343333",
+                "authorizationNsu": "4851680",
+            }
+        ],
+    }
 
 
 @pytest.fixture
@@ -50,34 +102,58 @@ class TestBarteClient:
         assert "Invalid environment" in str(exc_info.value)
 
     @patch("requests.post")
-    def test_create_charge(self, mock_post, barte_client, mock_charge_response):
-        """Test creating a new charge"""
-        mock_post.return_value.json.return_value = mock_charge_response
+    def test_create_order(self, mock_post, barte_client, mock_order_response):
+        """Test creating a new order"""
+        mock_post.return_value.json.return_value = mock_order_response
         mock_post.return_value.raise_for_status = Mock()
 
-        charge_data = {
-            "amount": 1000,
-            "description": "Test charge",
-            "payment_method": "credit_card",
-            "customer": {
-                "name": "John Doe",
-                "tax_id": "123.456.789-00",
-                "email": "john@example.com",
+        order_data = {
+            "startDate": "2025-02-07",
+            "value": 60,
+            "installments": 1,
+            "title": "Barte - Postman - h6C",
+            "attemptReference": "349cea7a-6a52-4edd-9c73-7773a75bf05d",
+            "description": "Barte - Postman - oZ2",
+            "payment": {
+                "method": "CREDIT_CARD_EARLY_SELLER",
+                "card": {"cardToken": "790e8637-c16b-4ed5-a9bf-faec76dbc5aa"},
+                "brand": "mastercard",
+                "fraudData": {
+                    "internationalDocument": {
+                        "documentNumber": "19340911032",
+                        "documentType": "CPF",
+                        "documentNation": "BR",
+                    },
+                    "name": "ClienteExterno-sTZ4",
+                    "email": "ClienteExterno-sTZ4@email.com",
+                    "phone": "1199999-9999",
+                    "billingAddress": {
+                        "country": "BR",
+                        "state": "SP",
+                        "city": "São Paulo",
+                        "district": "Bela Vista",
+                        "street": "Avenida Paulista",
+                        "zipCode": "01310200",
+                        "number": "620",
+                        "complement": "",
+                    },
+                },
             },
+            "uuidBuyer": "5929a30b-e68f-4c81-9481-d25adbabafeb",
         }
 
-        charge = barte_client.create_charge(charge_data)
+        order = barte_client.create_order(order_data)
 
-        assert isinstance(charge, Charge)
-        assert charge.amount == 1000
-        assert charge.customer.name == "John Doe"
-        assert charge.metadata == {"order_id": "123"}
-        assert isinstance(charge.created_at, datetime)
+        assert isinstance(order, Order)
+        assert order.value == 60
+        assert order.customer.name == "John Doe"
+        assert order.charges[0].uuid == "35b45f90-11bc-448a-bcb4-969a9697d4d5"
+        assert isinstance(order.startDate, datetime)
 
         mock_post.assert_called_once_with(
-            f"{barte_client.base_url}/v1/charges",
+            f"{barte_client.base_url}/v2/orders",
             headers=barte_client.headers,
-            json=charge_data,
+            json=order_data,
         )
 
     @patch("requests.post")

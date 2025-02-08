@@ -13,6 +13,7 @@ from .models import (
     InstallmentSimulation,
     Buyer,
     BuyerList,
+    Order,
 )
 
 
@@ -53,12 +54,12 @@ class BarteClient:
             )
         return cls._instance
 
-    def create_charge(self, data: Dict[str, Any]) -> Charge:
-        """Create a new charge"""
-        endpoint = f"{self.base_url}/v1/charges"
+    def create_order(self, data: Dict[str, Any]) -> Order:
+        """Create a new order"""
+        endpoint = f"{self.base_url}/v2/orders"
         response = requests.post(endpoint, headers=self.headers, json=data)
         response.raise_for_status()
-        return from_dict(data_class=Charge, data=response.json(), config=DACITE_CONFIG)
+        return from_dict(data_class=Order, data=response.json(), config=DACITE_CONFIG)
 
     def get_charge(self, charge_id: str) -> Charge:
         """Get a specific charge"""
