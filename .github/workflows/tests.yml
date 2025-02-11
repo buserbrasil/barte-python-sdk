@@ -60,7 +60,7 @@ jobs:
     needs: [build]
     environment:
       name: pypi
-      url: https://pypi.org/p/santander-python-sdk
+      url: https://pypi.org/p/barte-python-sdk
     permissions:
       id-token: write
     steps:
