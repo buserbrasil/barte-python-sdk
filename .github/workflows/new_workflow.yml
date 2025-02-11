@@ -1,9 +1,13 @@
-name: Tests
-
+name: test
 on:
   push:
+    branches:
+      - main
+    tags:
+      - "v*"
   pull_request:
-
+    branches:
+      - main
 jobs:
   code-quality:
     runs-on: ubuntu-latest
@@ -17,24 +21,21 @@ jobs:
         run: uv run ruff check
       - name: ruff check
         run: uv run ruff check
-
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12"]
-
+        python-version:
+          - "3.11"
+          - "3.12"
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: astral-sh/setup-uv@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Test with python ${{ matrix.python-version }}
-      run: uv run --frozen -m pytest
-
+      - uses: actions/checkout@v4
+      - name: Install the latest version of uv and set the python version
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Test with python ${{ matrix.python-version }}
+        run: uv run --frozen -m pytest
   build:
     name: Build package
     runs-on: ubuntu-latest
@@ -52,7 +53,6 @@ jobs:
         with:
           name: python-package-distributions
           path: dist/
-
   publish-to-pypi:
     name: Publish to PyPI
     runs-on: ubuntu-latest
@@ -71,7 +71,6 @@ jobs:
           path: dist/
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-
   github-release:
     name: GitHub Release
     needs:
@@ -110,4 +109,3 @@ jobs:
           gh release upload
           '${{ github.ref_name }}' dist/**
           --repo '${{ github.repository }}'
-
