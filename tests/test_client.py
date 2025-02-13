@@ -53,7 +53,7 @@ def mock_order_response():
                 "customer": {
                     "document": "19340911032",
                     "type": "CPF",
-                    "name": "ClienteExterno-sTZ4 ",
+                    "name": "John Doe",
                     "email": "ClienteExterno-sTZ4@email.com",
                     "phone": "11999999999",
                     "alternativeEmail": "",
@@ -68,19 +68,47 @@ def mock_order_response():
 @pytest.fixture
 def mock_charge_response():
     return {
-        "id": "chr_123456789",
-        "amount": 1000,
-        "currency": "BRL",
-        "status": "succeeded",
-        "payment_method": "credit_card",
-        "description": "Test charge",
+        "uuid": "8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31",
+        "title": "Barte - Postman - ySw",
+        "expirationDate": "2025-02-12",
+        "paidDate": "2025-02-12",
+        "value": 1000.00,
+        "paymentMethod": "CREDIT_CARD_EARLY_SELLER",
+        "status": "PAID",
         "customer": {
+            "uuid": "",
+            "document": "19340911032",
+            "type": "CPF",
             "name": "John Doe",
-            "tax_id": "123.456.789-00",
-            "email": "john@example.com",
+            "email": "ClienteExterno-sTZ4@email.com",
+            "phone": "11999999999",
+            "alternativeEmail": "",
         },
-        "created_at": "2024-01-07T10:00:00Z",
-        "metadata": {"order_id": "123"},
+        "authorizationCode": "4135497",
+        "authorizationNsu": "5805245",
+    }
+
+
+@pytest.fixture
+def mock_pix_charge_response():
+    return {
+        "uuid": "7a384917-e73e-466e-b90d-8c9f04e7fa9f",
+        "title": "Teste",
+        "expirationDate": "2025-02-12",
+        "value": 3.00,
+        "paymentMethod": "PIX",
+        "status": "SCHEDULED",
+        "customer": {
+            "uuid": "",
+            "document": "19340911032",
+            "type": "CPF",
+            "name": "John Doe",
+            "email": "ClienteExterno-sTZ4@email.com",
+            "phone": "11999999999",
+            "alternativeEmail": "",
+        },
+        "pixCode": "000201010211261230014BR.GOV.BCB.PIX01000297BENEFICIÁRIO FINAL: BUSER BRASIL TECNOLOGIA LTDA \n Intermediado pela plataforma Barte Brasil Ltda52040000530398654040.035802BR5920ClienteExterno-sTZ4 600062360532cd5e99706300441787ee6188e4814fa263040CB9",
+        "pixQRCodeImage": "https://s3.amazonaws.com/sandbox-charge-docs.barte.corp/pix/155e846a-c237-43a3-95a9-b8c88b5d5833.png",
     }
 
 
@@ -124,7 +152,7 @@ class TestBarteClient:
                         "documentType": "CPF",
                         "documentNation": "BR",
                     },
-                    "name": "ClienteExterno-sTZ4",
+                    "name": "John Doe",
                     "email": "ClienteExterno-sTZ4@email.com",
                     "phone": "1199999-9999",
                     "billingAddress": {
@@ -157,14 +185,13 @@ class TestBarteClient:
         )
 
     @patch("requests.post")
-    def test_create_pix_charge(self, mock_post, barte_client, mock_charge_response):
+    def test_create_pix_charge(self, mock_post, barte_client, mock_pix_charge_response):
         """Test creating a PIX charge"""
-        pix_response = {**mock_charge_response, "payment_method": "pix"}
-        mock_post.return_value.json.return_value = pix_response
+        mock_post.return_value.json.return_value = mock_pix_charge_response
         mock_post.return_value.raise_for_status = Mock()
 
         pix_data = {
-            "amount": 1000,
+            "amount": 3,
             "description": "PIX Test",
             "customer": {
                 "name": "John Doe",
@@ -176,8 +203,8 @@ class TestBarteClient:
         charge = barte_client.create_pix_charge(pix_data)
 
         assert isinstance(charge, PixCharge)
-        assert charge.payment_method == "pix"
-        assert charge.amount == 1000
+        assert charge.paymentMethod == "PIX"
+        assert charge.value == 3
         assert charge.customer.name == "John Doe"
 
         expected_data = {**pix_data, "payment_method": "pix"}
@@ -295,16 +322,16 @@ class TestBarteClient:
         mock_get.return_value.json.return_value = mock_charge_response
         mock_get.return_value.raise_for_status = Mock()
 
-        charge = barte_client.get_charge("chr_123456789")
+        charge = barte_client.get_charge("8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31")
 
         assert isinstance(charge, Charge)
-        assert charge.id == "chr_123456789"
-        assert charge.amount == 1000
+        assert charge.uuid == "8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31"
+        assert charge.value == 1000.00
         assert charge.customer.name == "John Doe"
-        assert isinstance(charge.created_at, datetime)
+        assert isinstance(charge.paidDate, datetime)
 
         mock_get.assert_called_once_with(
-            f"{barte_client.base_url}/v1/charges/chr_123456789",
+            f"{barte_client.base_url}/v2/charges/8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31",
             headers=barte_client.headers,
         )
 
@@ -326,9 +353,9 @@ class TestBarteClient:
 
         assert len(charges) == 2
         assert all(isinstance(charge, Charge) for charge in charges)
-        assert charges[0].id == "chr_123456789"
-        assert charges[1].id == "chr_987654321"
-        assert all(isinstance(charge.created_at, datetime) for charge in charges)
+        assert charges[0].uuid == "8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31"
+        assert charges[1].uuid == "8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31"
+        assert all(isinstance(charge.paidDate, datetime) for charge in charges)
 
         mock_get.assert_called_once_with(
             f"{barte_client.base_url}/v1/charges",
@@ -359,7 +386,7 @@ class TestBarteClient:
         assert isinstance(refund, Refund)
         assert refund.amount == 500
         mock_post.assert_called_with(
-            f"https://sandbox-api.barte.com/v1/charges/{charge.id}/refund",
+            f"https://sandbox-api.barte.com/v1/charges/{charge.uuid}/refund",
             headers={"X-Token-Api": "test_key", "Content-Type": "application/json"},
             json={"amount": 500},
         )
@@ -373,39 +400,32 @@ class TestBarteClient:
         assert isinstance(canceled_charge, Charge)
         assert canceled_charge.status == "canceled"
         mock_post.assert_called_with(
-            f"https://sandbox-api.barte.com/v1/charges/{charge.id}/cancel",
+            f"https://sandbox-api.barte.com/v1/charges/{charge.uuid}/cancel",
             headers={"X-Token-Api": "test_key", "Content-Type": "application/json"},
         )
 
     @patch("requests.get")
-    def test_pix_charge_get_qrcode(self, mock_get, mock_charge_response):
+    def test_pix_charge_get_qrcode(self, mock_get, mock_pix_charge_response):
         """Test PIX charge QR code method"""
         # Create a PIX charge
         pix_charge = from_dict(
             data_class=PixCharge,
-            data={**mock_charge_response, "payment_method": "pix"},
+            data=mock_pix_charge_response.copy(),
             config=DACITE_CONFIG,
         )
 
         # Mock QR code response
-        qr_code_response = {
-            "qr_code": "00020126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426614174000",
-            "qr_code_image": "https://api.barte.com/v1/qrcodes/123456.png",
-            "copy_and_paste": "00020126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426614174000",
-        }
-        mock_get.return_value.json.return_value = qr_code_response
+        mock_get.return_value.json.return_value = mock_pix_charge_response
         mock_get.return_value.raise_for_status = Mock()
 
         # Get QR code
-        pix_charge = pix_charge.get_qr_code()
+        pix_charge_qr_code = pix_charge.get_qr_code()
 
-        assert isinstance(pix_charge, PixCharge)
-        assert pix_charge.qr_code == qr_code_response["qr_code"]
-        assert pix_charge.qr_code_image == qr_code_response["qr_code_image"]
-        assert pix_charge.copy_and_paste == qr_code_response["copy_and_paste"]
+        assert pix_charge_qr_code.qr_code == pix_charge.pixCode
+        assert pix_charge_qr_code.qr_code_image == pix_charge.pixQRCodeImage
 
         mock_get.assert_called_once_with(
-            f"https://sandbox-api.barte.com/v1/charges/{pix_charge.id}/pix",
+            f"https://sandbox-api.barte.com/v2/charges/{pix_charge.uuid}",
             headers={"X-Token-Api": "test_key", "Content-Type": "application/json"},
         )
 
@@ -454,10 +474,9 @@ class TestBarteClient:
         charge = barte_client.charge_with_card_token(token_id, charge_data)
 
         assert isinstance(charge, Charge)
-        assert charge.amount == 1000
+        assert charge.value == 1000
         assert charge.customer.name == "John Doe"
-        assert charge.metadata == {"order_id": "123"}
-        assert isinstance(charge.created_at, datetime)
+        assert isinstance(charge.paidDate, datetime)
 
         expected_data = {
             **charge_data,
@@ -554,11 +573,9 @@ class TestBarteClient:
         charge = barte_client.charge_with_card_token(token_id, charge_data)
 
         assert isinstance(charge, Charge)
-        assert charge.amount == 1000
-        assert charge.installments == 3
-        assert charge.installment_amount == 333
+        assert charge.value == 1000
         assert charge.customer.name == "John Doe"
-        assert isinstance(charge.created_at, datetime)
+        assert isinstance(charge.paidDate, datetime)
 
         expected_data = {
             **charge_data,
