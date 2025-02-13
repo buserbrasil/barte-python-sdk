@@ -35,30 +35,40 @@ class CardToken:
 
 
 @dataclass
+class ChargerCustomer:
+    uuid: str
+    document: str
+    type: str
+    name: str
+    email: str
+    phone: str
+    alternativeEmail: str
+
+
+@dataclass
 class Charge:
-    id: str
-    amount: int
-    currency: str
+    uuid: str
+    title: str
+    expirationDate: datetime
+    paidDate: datetime
+    value: float
+    paymentMethod: str
     status: str
-    payment_method: str
-    description: Optional[str]
-    customer: Customer
-    created_at: datetime
-    metadata: Optional[Dict[str, Any]] = None
-    installments: Optional[int] = None
-    installment_amount: Optional[int] = None
+    customer: ChargerCustomer
+    authorizationCode: Optional[str]
+    authorizationNsu: Optional[str]
 
     def refund(self, amount: Optional[int] = None) -> "Refund":
         from .client import BarteClient
 
         return BarteClient.get_instance().refund_charge(
-            self.id, {"amount": amount} if amount else None
+            self.uuid, {"amount": amount} if amount else None
         )
 
     def cancel(self) -> "Charge":
         from .client import BarteClient
 
-        return BarteClient.get_instance().cancel_charge(self.id)
+        return BarteClient.get_instance().cancel_charge(self.uuid)
 
 
 @dataclass
@@ -76,14 +86,14 @@ class OrderCustomer:
 class OrderCharge:
     uuid: str
     title: str
-    expirationDate: str
-    paidDate: datetime
+    expirationDate: datetime
     value: float
     paymentMethod: str
     status: str
     customer: OrderCustomer
-    authorizationCode: str
-    authorizationNsu: str
+    authorizationCode: Optional[str] = None
+    authorizationNsu: Optional[str] = None
+    paidDate: Optional[datetime] = None
 
 
 @dataclass
@@ -115,17 +125,16 @@ class Order:
 
 @dataclass
 class PixCharge(Charge):
-    qr_code: Optional[str] = None
-    qr_code_image: Optional[str] = None
-    copy_and_paste: Optional[str] = None
+    pixCode: str
+    pixQRCodeImage: str
+    paidDate: Optional[datetime]
 
     def get_qr_code(self) -> "PixCharge":
         from .client import BarteClient
 
-        qr_data = BarteClient.get_instance().get_pix_qrcode(self.id)
-        self.qr_code = qr_data.qr_code
-        self.qr_code_image = qr_data.qr_code_image
-        self.copy_and_paste = qr_data.copy_and_paste
+        qr_data = BarteClient.get_instance().get_pix_qrcode(self.uuid)
+        self.qr_code = qr_data.pixCode
+        self.qr_code_image = qr_data.pixQRCodeImage
         return self
 
 

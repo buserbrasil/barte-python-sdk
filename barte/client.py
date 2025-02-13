@@ -7,7 +7,6 @@ from .models import (
     Refund,
     InstallmentOptions,
     PixCharge,
-    PixQRCode,
     DACITE_CONFIG,
     Config,
     InstallmentSimulation,
@@ -63,7 +62,7 @@ class BarteClient:
 
     def get_charge(self, charge_id: str) -> Charge:
         """Get a specific charge"""
-        endpoint = f"{self.base_url}/v1/charges/{charge_id}"
+        endpoint = f"{self.base_url}/v2/charges/{charge_id}"
         response = requests.get(endpoint, headers=self.headers)
         response.raise_for_status()
         return from_dict(data_class=Charge, data=response.json(), config=DACITE_CONFIG)
@@ -134,12 +133,14 @@ class BarteClient:
             data_class=PixCharge, data=response.json(), config=DACITE_CONFIG
         )
 
-    def get_pix_qrcode(self, charge_id: str) -> PixQRCode:
+    def get_pix_qrcode(self, charge_id: str) -> PixCharge:
         """Get PIX QR Code data for a charge"""
-        endpoint = f"{self.base_url}/v1/charges/{charge_id}/pix"
+        endpoint = f"{self.base_url}/v2/charges/{charge_id}"
         response = requests.get(endpoint, headers=self.headers)
         response.raise_for_status()
-        return from_dict(data_class=PixQRCode, data=response.json())
+        return from_dict(
+            data_class=PixCharge, data=response.json(), config=DACITE_CONFIG
+        )
 
     def simulate_installments(self, amount: int, brand: str) -> InstallmentOptions:
         """Simulate credit card installments"""
