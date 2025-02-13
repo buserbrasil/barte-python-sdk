@@ -28,3 +28,11 @@ dev-dependencies = [
     "python-dateutil>=2.8.0",
     "ruff>=0.9.5",
 ]
+
+[build-system]
+requires = ["setuptools", "wheel", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_scheme = "guess-next-dev"
+local_scheme = "dirty-tag"
