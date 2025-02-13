@@ -1,11 +1,12 @@
 from barte import BarteClient, PixCharge, PixQRCode
 from datetime import datetime, timedelta
 
+
 def main():
     # Initialize the client
     client = BarteClient(
         api_key="your_api_key",
-        environment="sandbox"  # Use "production" for production environment
+        environment="sandbox",  # Use "production" for production environment
     )
 
     # Create a PIX charge with expiration
@@ -17,20 +18,17 @@ def main():
         "customer": {
             "name": "John Doe",
             "tax_id": "123.456.789-00",
-            "email": "john@example.com"
+            "email": "john@example.com",
         },
         "expiration_date": expiration,
-        "metadata": {
-            "order_id": "123",
-            "product_id": "456"
-        }
+        "metadata": {"order_id": "123", "product_id": "456"},
     }
 
     # Create PIX charge
     pix_charge: PixCharge = client.create_pix_charge(pix_data)
     print("\nPIX Charge Created:")
     print(f"ID: {pix_charge.id}")
-    print(f"Amount: R$ {pix_charge.amount/100:.2f}")
+    print(f"Amount: R$ {pix_charge.amount / 100:.2f}")
     print(f"Status: {pix_charge.status}")
     print(f"Customer: {pix_charge.customer.name}")
     print(f"Created at: {pix_charge.created_at}")
@@ -59,7 +57,7 @@ def main():
     charges = client.list_charges({"payment_method": "pix", "limit": 5})
     for charge in charges:
         if isinstance(charge, PixCharge):
-            print(f"- {charge.id}: R$ {charge.amount/100:.2f} ({charge.status})")
+            print(f"- {charge.id}: R$ {charge.amount / 100:.2f} ({charge.status})")
 
     # Cancel the charge if still pending
     if updated_charge.status == "pending":
@@ -68,5 +66,6 @@ def main():
     else:
         print(f"\nCharge cannot be canceled: {updated_charge.status}")
 
+
 if __name__ == "__main__":
-    main() 
+    main()
