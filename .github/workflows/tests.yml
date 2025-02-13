@@ -13,8 +13,8 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: ruff format --check
-        run: uv run ruff check
+      - name: ruff format
+        run: uv run ruff format --check
       - name: ruff check
         run: uv run ruff check
 
@@ -110,4 +110,3 @@ jobs:
           gh release upload
           '${{ github.ref_name }}' dist/**
           --repo '${{ github.repository }}'
-
