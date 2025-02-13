@@ -288,32 +288,46 @@ class TestBarteClient:
             params={"amount": 1000, "brand": "visa"},
         )
 
-    @patch("requests.post")
-    def test_refund_charge(self, mock_post, barte_client):
+    @patch("requests.patch")
+    def test_refund_charge(self, mock_patch, barte_client):
         """Test refunding a charge"""
         mock_response = {
-            "id": "ref_123456",
-            "charge_id": "chr_123456789",
-            "amount": 1000,
-            "status": "succeeded",
-            "created_at": "2024-01-07T10:00:00Z",
+            "uuid": "d54f6553-8bcf-4376-a995-aaffb6d29492",
+            "title": "Barte - Postman - BgN",
+            "expirationDate": "2025-02-12",
+            "paidDate": "2025-02-12",
+            "value": 23.00,
+            "paymentMethod": "CREDIT_CARD_EARLY_SELLER",
+            "status": "REFUND",
+            "customer": {
+                "uuid": "",
+                "document": "19340911032",
+                "type": "CPF",
+                "name": "ClienteExterno-sTZ4 ",
+                "email": "ClienteExterno-sTZ4@email.com",
+                "phone": "11999999999",
+                "alternativeEmail": "",
+            },
+            "authorizationCode": "3235588",
+            "authorizationNsu": "5555742",
         }
-        mock_post.return_value.json.return_value = mock_response
-        mock_post.return_value.raise_for_status = Mock()
+        mock_patch.return_value.json.return_value = mock_response
+        mock_patch.return_value.raise_for_status = Mock()
 
-        refund_data = {"amount": 1000}
-        refund = barte_client.refund_charge("chr_123456789", refund_data)
+        refund = barte_client.refund_charge(
+            "d54f6553-8bcf-4376-a995-aaffb6d29492", as_fraud=False
+        )
 
         assert isinstance(refund, Refund)
-        assert refund.id == "ref_123456"
-        assert refund.amount == 1000
-        assert refund.status == "succeeded"
-        assert isinstance(refund.created_at, datetime)
+        assert refund.uuid == "d54f6553-8bcf-4376-a995-aaffb6d29492"
+        assert refund.value == 23.00
+        assert refund.status == "REFUND"
+        assert isinstance(refund.paidDate, datetime)
 
-        mock_post.assert_called_once_with(
-            f"{barte_client.base_url}/v1/charges/chr_123456789/refund",
+        mock_patch.assert_called_once_with(
+            f"{barte_client.base_url}/v2/charges/d54f6553-8bcf-4376-a995-aaffb6d29492/refund",
             headers=barte_client.headers,
-            json=refund_data,
+            json={"asFraud": False},
         )
 
     @patch("requests.get")
@@ -363,44 +377,57 @@ class TestBarteClient:
             params=params,
         )
 
-    @patch("requests.post")
-    def test_charge_methods(self, mock_post, mock_charge_response):
+    @patch("requests.delete")
+    @patch("requests.patch")
+    def test_charge_methods(self, mock_patch, mock_delete, mock_charge_response):
         """Test charge instance methods"""
         # Mock for refund
         refund_response = {
-            "id": "ref_123456",
-            "charge_id": "chr_123456789",
-            "amount": 500,
-            "status": "succeeded",
-            "created_at": "2024-01-07T10:00:00Z",
+            "uuid": "d54f6553-8bcf-4376-a995-aaffb6d29492",
+            "title": "Barte - Postman - BgN",
+            "expirationDate": "2025-02-12",
+            "paidDate": "2025-02-12",
+            "value": 23.00,
+            "paymentMethod": "CREDIT_CARD_EARLY_SELLER",
+            "status": "REFUND",
+            "customer": {
+                "uuid": "",
+                "document": "19340911032",
+                "type": "CPF",
+                "name": "ClienteExterno-sTZ4 ",
+                "email": "ClienteExterno-sTZ4@email.com",
+                "phone": "11999999999",
+                "alternativeEmail": "",
+            },
+            "authorizationCode": "3235588",
+            "authorizationNsu": "5555742",
         }
-        mock_post.return_value.json.return_value = refund_response
-        mock_post.return_value.raise_for_status = Mock()
+
+        mock_patch.return_value.json.return_value = refund_response
+        mock_patch.return_value.raise_for_status = Mock()
 
         charge = from_dict(
             data_class=Charge, data=mock_charge_response, config=DACITE_CONFIG
         )
 
         # Test refund method
-        refund = charge.refund(amount=500)
+        refund = charge.refund(as_fraud=False)
         assert isinstance(refund, Refund)
-        assert refund.amount == 500
-        mock_post.assert_called_with(
-            f"https://sandbox-api.barte.com/v1/charges/{charge.uuid}/refund",
+        assert refund.value == 23.00
+        mock_patch.assert_called_with(
+            f"https://sandbox-api.barte.com/v2/charges/{charge.uuid}/refund",
             headers={"X-Token-Api": "test_key", "Content-Type": "application/json"},
-            json={"amount": 500},
+            json={"asFraud": False},
         )
 
         # Mock for cancel - use the original mock response with updated status
-        cancel_response = {**mock_charge_response, "status": "canceled"}
-        mock_post.return_value.json.return_value = cancel_response
+        mock_delete.return_value.json.return_value = None
+        mock_delete.status_code = 204
 
         # Test cancel method
-        canceled_charge = charge.cancel()
-        assert isinstance(canceled_charge, Charge)
-        assert canceled_charge.status == "canceled"
-        mock_post.assert_called_with(
-            f"https://sandbox-api.barte.com/v1/charges/{charge.uuid}/cancel",
+        charge.cancel()
+        mock_delete.assert_called_with(
+            f"https://sandbox-api.barte.com/v2/charges/{charge.uuid}",
             headers={"X-Token-Api": "test_key", "Content-Type": "application/json"},
         )
 
@@ -487,62 +514,6 @@ class TestBarteClient:
             f"{barte_client.base_url}/v1/charges",
             headers=barte_client.headers,
             json=expected_data,
-        )
-
-    @patch("requests.get")
-    def test_get_charge_refunds(self, mock_get, barte_client):
-        """Test getting refunds for a charge"""
-        mock_response = {
-            "data": [
-                {
-                    "id": "ref_123456",
-                    "charge_id": "chr_123456789",
-                    "amount": 500,
-                    "status": "succeeded",
-                    "created_at": "2024-01-07T10:00:00Z",
-                },
-                {
-                    "id": "ref_789012",
-                    "charge_id": "chr_123456789",
-                    "amount": 500,
-                    "status": "succeeded",
-                    "created_at": "2024-01-07T10:30:00Z",
-                },
-            ]
-        }
-        mock_get.return_value.json.return_value = mock_response
-        mock_get.return_value.raise_for_status = Mock()
-
-        refunds = barte_client.get_charge_refunds("chr_123456789")
-
-        assert len(refunds) == 2
-        assert all(isinstance(refund, Refund) for refund in refunds)
-        assert refunds[0].id == "ref_123456"
-        assert refunds[1].id == "ref_789012"
-        assert refunds[0].amount == 500
-        assert refunds[1].status == "succeeded"
-        assert all(isinstance(refund.created_at, datetime) for refund in refunds)
-
-        mock_get.assert_called_once_with(
-            f"{barte_client.base_url}/v1/charges/chr_123456789/refunds",
-            headers=barte_client.headers,
-        )
-
-    @patch("requests.get")
-    def test_get_charge_refunds_empty(self, mock_get, barte_client):
-        """Test getting refunds for a charge with no refunds"""
-        mock_response = {"data": []}
-        mock_get.return_value.json.return_value = mock_response
-        mock_get.return_value.raise_for_status = Mock()
-
-        refunds = barte_client.get_charge_refunds("chr_123456789")
-
-        assert len(refunds) == 0
-        assert isinstance(refunds, list)
-
-        mock_get.assert_called_once_with(
-            f"{barte_client.base_url}/v1/charges/chr_123456789/refunds",
-            headers=barte_client.headers,
         )
 
     @patch("requests.post")

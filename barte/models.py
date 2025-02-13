@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from dacite import Config
 from dateutil.parser import parse as parse_date
 
@@ -58,12 +58,10 @@ class Charge:
     authorizationCode: Optional[str]
     authorizationNsu: Optional[str]
 
-    def refund(self, amount: Optional[int] = None) -> "Refund":
+    def refund(self, as_fraud: Optional[bool] = False) -> "Refund":
         from .client import BarteClient
 
-        return BarteClient.get_instance().refund_charge(
-            self.uuid, {"amount": amount} if amount else None
-        )
+        return BarteClient.get_instance().refund_charge(self.uuid, as_fraud)
 
     def cancel(self) -> "Charge":
         from .client import BarteClient
@@ -139,13 +137,8 @@ class PixCharge(Charge):
 
 
 @dataclass
-class Refund:
-    id: str
-    charge_id: str
-    amount: int
-    status: str
-    created_at: datetime
-    metadata: Optional[Dict[str, Any]] = None
+class Refund(Charge):
+    pass
 
 
 @dataclass

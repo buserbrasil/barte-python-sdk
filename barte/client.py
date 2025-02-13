@@ -77,12 +77,11 @@ class BarteClient:
             for item in response.json()["data"]
         ]
 
-    def cancel_charge(self, charge_id: str) -> Charge:
+    def cancel_charge(self, charge_id: str) -> None:
         """Cancel a specific charge"""
-        endpoint = f"{self.base_url}/v1/charges/{charge_id}/cancel"
-        response = requests.post(endpoint, headers=self.headers)
+        endpoint = f"{self.base_url}/v2/charges/{charge_id}"
+        response = requests.delete(endpoint, headers=self.headers)
         response.raise_for_status()
-        return from_dict(data_class=Charge, data=response.json(), config=DACITE_CONFIG)
 
     def create_buyer(self, buyer_data: Dict[str, any]) -> Buyer:
         endpoint = f"{self.base_url}/v2/buyers"
@@ -154,21 +153,11 @@ class BarteClient:
             config=Config(cast=[List[InstallmentSimulation]]),
         )
 
-    def get_charge_refunds(self, charge_id: str) -> List[Refund]:
-        """Get all refunds for a charge"""
-        endpoint = f"{self.base_url}/v1/charges/{charge_id}/refunds"
-        response = requests.get(endpoint, headers=self.headers)
-        response.raise_for_status()
-        return [
-            from_dict(data_class=Refund, data=item, config=DACITE_CONFIG)
-            for item in response.json()["data"]
-        ]
-
-    def refund_charge(
-        self, charge_id: str, data: Optional[Dict[str, Any]] = None
-    ) -> Refund:
+    def refund_charge(self, charge_id: str, as_fraud: Optional[bool] = False) -> Refund:
         """Refund a charge"""
-        endpoint = f"{self.base_url}/v1/charges/{charge_id}/refund"
-        response = requests.post(endpoint, headers=self.headers, json=data or {})
+        endpoint = f"{self.base_url}/v2/charges/{charge_id}/refund"
+        response = requests.patch(
+            endpoint, headers=self.headers, json={"asFraud": as_fraud}
+        )
         response.raise_for_status()
         return from_dict(data_class=Refund, data=response.json(), config=DACITE_CONFIG)
