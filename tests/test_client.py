@@ -112,6 +112,30 @@ def mock_pix_charge_response():
     }
 
 
+@pytest.fixture
+def mock_list_response():
+    return {
+        "content": [],
+        "pageable": {
+            "sort": {"unsorted": True, "sorted": False, "empty": True},
+            "pageNumber": 0,
+            "pageSize": 20,
+            "offset": 0,
+            "paged": True,
+            "unpaged": False,
+        },
+        "totalElements": 1,
+        "totalPages": 1,
+        "last": False,
+        "numberOfElements": 20,
+        "size": 20,
+        "number": 0,
+        "sort": {"unsorted": True, "sorted": False, "empty": True},
+        "first": True,
+        "empty": False,
+    }
+
+
 class TestBarteClient:
     def test_client_initialization(self):
         """Test client initialization with valid environment"""
@@ -350,29 +374,30 @@ class TestBarteClient:
         )
 
     @patch("requests.get")
-    def test_list_charges(self, mock_get, barte_client, mock_charge_response):
+    def test_list_charges(
+        self, mock_get, barte_client, mock_charge_response, mock_list_response
+    ):
         """Test listing all charges"""
         mock_response = {
-            "data": [
+            **mock_list_response,
+            "content": [
                 mock_charge_response,
-                {**mock_charge_response, "id": "chr_987654321"},
             ],
             "has_more": False,
         }
         mock_get.return_value.json.return_value = mock_response
         mock_get.return_value.raise_for_status = Mock()
 
-        params = {"limit": 2, "starting_after": "chr_0"}
-        charges = barte_client.list_charges(params)
+        params = {"customerDocument": "19340911032"}
+        charges = barte_client.list_charges(params).content
 
-        assert len(charges) == 2
+        assert len(charges) == 1
         assert all(isinstance(charge, Charge) for charge in charges)
         assert charges[0].uuid == "8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31"
-        assert charges[1].uuid == "8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31"
         assert all(isinstance(charge.paidDate, datetime) for charge in charges)
 
         mock_get.assert_called_once_with(
-            f"{barte_client.base_url}/v1/charges",
+            f"{barte_client.base_url}/v2/charges",
             headers=barte_client.headers,
             params=params,
         )

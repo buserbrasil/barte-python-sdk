@@ -50,11 +50,11 @@ class Charge:
     uuid: str
     title: str
     expirationDate: datetime
-    paidDate: datetime
     value: float
     paymentMethod: str
     status: str
     customer: ChargerCustomer
+    paidDate: Optional[datetime]
     authorizationCode: Optional[str]
     authorizationNsu: Optional[str]
 
@@ -190,7 +190,7 @@ class Pageable:
 
 
 @dataclass
-class BuyerList:
+class BaseListReponse:
     content: List[Buyer]
     pageable: Pageable
     totalPages: int
@@ -202,3 +202,13 @@ class BuyerList:
     sort: SortInfo
     first: bool
     empty: bool
+
+
+@dataclass
+class BuyerList(BaseListReponse):
+    content: List[Buyer]
+
+
+@dataclass
+class ChargeList(BaseListReponse):
+    content: List[Charge]

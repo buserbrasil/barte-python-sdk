@@ -13,6 +13,7 @@ from .models import (
     Buyer,
     BuyerList,
     Order,
+    ChargeList,
 )
 
 
@@ -67,15 +68,14 @@ class BarteClient:
         response.raise_for_status()
         return from_dict(data_class=Charge, data=response.json(), config=DACITE_CONFIG)
 
-    def list_charges(self, params: Optional[Dict[str, Any]] = None) -> List[Charge]:
+    def list_charges(self, params: Optional[Dict[str, Any]] = None) -> ChargeList:
         """List all charges with optional filters"""
-        endpoint = f"{self.base_url}/v1/charges"
+        endpoint = f"{self.base_url}/v2/charges"
         response = requests.get(endpoint, headers=self.headers, params=params)
         response.raise_for_status()
-        return [
-            from_dict(data_class=Charge, data=item, config=DACITE_CONFIG)
-            for item in response.json()["data"]
-        ]
+        return from_dict(
+            data_class=ChargeList, data=response.json(), config=DACITE_CONFIG
+        )
 
     def cancel_charge(self, charge_id: str) -> None:
         """Cancel a specific charge"""
