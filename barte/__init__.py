@@ -3,10 +3,8 @@ from .models import (
     Charge,
     CardToken,
     Refund,
-    InstallmentOptions,
     PixCharge,
     Customer,
-    InstallmentSimulation,
     PixQRCode,
 )
 
@@ -17,9 +15,7 @@ __all__ = [
     "Charge",
     "CardToken",
     "Refund",
-    "InstallmentOptions",
     "PixCharge",
     "Customer",
-    "InstallmentSimulation",
     "PixQRCode",
 ]

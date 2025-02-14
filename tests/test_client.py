@@ -7,7 +7,6 @@ from barte import (
     Charge,
     CardToken,
     Refund,
-    InstallmentOptions,
     PixCharge,
 )
 from barte.models import DACITE_CONFIG, Order
@@ -279,37 +278,6 @@ class TestBarteClient:
             f"{barte_client.base_url}/v2/cards",
             headers=barte_client.headers,
             json=card_data,
-        )
-
-    @patch("requests.get")
-    def test_simulate_installments(self, mock_get, barte_client):
-        """Test installment simulation"""
-        mock_response = {
-            "installments": [
-                {
-                    "installments": 1,
-                    "amount": 1000,
-                    "total": 1000,
-                    "interest_rate": 0.0,
-                },
-                {"installments": 2, "amount": 510, "total": 1020, "interest_rate": 2.0},
-                {"installments": 3, "amount": 345, "total": 1035, "interest_rate": 3.5},
-            ]
-        }
-        mock_get.return_value.json.return_value = mock_response
-        mock_get.return_value.raise_for_status = Mock()
-
-        options = barte_client.simulate_installments(amount=1000, brand="visa")
-
-        assert isinstance(options, InstallmentOptions)
-        assert len(options.installments) == 3
-        assert options.installments[0].amount == 1000
-        assert options.installments[1].interest_rate == 2.0
-
-        mock_get.assert_called_once_with(
-            f"{barte_client.base_url}/v1/simulate/installments",
-            headers=barte_client.headers,
-            params={"amount": 1000, "brand": "visa"},
         )
 
     @patch("requests.patch")
