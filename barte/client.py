@@ -1,4 +1,5 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
+from dataclasses import asdict
 import requests
 from dacite import from_dict
 from .models import (
@@ -11,6 +12,7 @@ from .models import (
     BuyerList,
     Order,
     ChargeList,
+    OrderPayload,
 )
 
 
@@ -51,9 +53,13 @@ class BarteClient:
             )
         return cls._instance
 
-    def create_order(self, data: Dict[str, Any]) -> Order:
+    def create_order(self, data: Union[Dict[str, Any], OrderPayload]) -> Order:
         """Create a new order"""
         endpoint = f"{self.base_url}/v2/orders"
+
+        if isinstance(data, OrderPayload):
+            data = asdict(data)
+
         response = requests.post(endpoint, headers=self.headers, json=data)
         response.raise_for_status()
         return from_dict(data_class=Order, data=response.json(), config=DACITE_CONFIG)

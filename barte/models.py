@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Literal
 from dacite import Config
 from dateutil.parser import parse as parse_date
 
@@ -199,3 +199,96 @@ class BuyerList(BaseListReponse):
 @dataclass
 class ChargeList(BaseListReponse):
     content: List[Charge]
+
+
+@dataclass
+class Card:
+    holderName: str
+    number: str
+    expiration: str
+    cvv: str
+
+
+@dataclass
+class InternationalDocument:
+    documentNumber: str
+    documentType: str
+    documentNation: str
+
+
+@dataclass
+class BillingAddress:
+    country: str
+    state: str
+    city: str
+    district: str
+    street: str
+    zipCode: str
+    number: Optional[str]
+    complement: Optional[str]
+
+
+@dataclass
+class FraudData:
+    name: str
+    email: str
+    phone: str
+    billingAddress: BillingAddress
+    internationalDocument: Optional[InternationalDocument]
+    document: Optional[str]
+
+
+@dataclass
+class Payment:
+    method: Literal[
+        "PIX",
+        "BANK_SLIP",
+        "CREDIT_CARD",
+        "CREDIT_CARD_EARLY_BUYER",
+        "CREDIT_CARD_EARLY_SELLER",
+        "DEBIT_CARD",
+        "CREDIT_CARD_EARLY_MIXED",
+        "GOOGLE_PAY",
+        "APPLE_PAY",
+        "INVALID",
+    ]
+    brand: Optional[str]
+    cardToken: Optional[str]
+    capture: Optional[bool]
+    integrationOrderId: Optional[str]
+    card: Optional[Card]
+    fraudData: Optional[FraudData]
+
+
+@dataclass
+class SubSellerPayment:
+    idSubSeller: int
+    amount: int
+    paymentValue: int
+    paymentType: str
+
+
+@dataclass
+class SubSellerPaymentRequest:
+    subSellerPayment: List[SubSellerPayment]
+
+
+@dataclass
+class Metadata:
+    key: str
+    value: str
+
+
+@dataclass
+class OrderPayload:
+    title: str
+    uuidBuyer: str
+    startDate: str
+    value: int
+    installments: int
+    payment: Payment
+    attemptReference: Optional[str]
+    urlCallBack: Optional[str]
+    description: Optional[str]
+    subSellerPaymentRequest: Optional[SubSellerPaymentRequest]
+    metadata: Optional[List[Metadata]]
