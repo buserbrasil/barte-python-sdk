@@ -142,19 +142,6 @@ class Refund(Charge):
 
 
 @dataclass
-class InstallmentSimulation:
-    installments: int
-    amount: int
-    total: int
-    interest_rate: float
-
-
-@dataclass
-class InstallmentOptions:
-    installments: List[InstallmentSimulation]
-
-
-@dataclass
 class PixQRCode:
     qr_code: str
     qr_code_image: str

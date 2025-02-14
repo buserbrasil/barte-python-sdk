@@ -1,15 +1,12 @@
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 import requests
 from dacite import from_dict
 from .models import (
     Charge,
     CardToken,
     Refund,
-    InstallmentOptions,
     PixCharge,
     DACITE_CONFIG,
-    Config,
-    InstallmentSimulation,
     Buyer,
     BuyerList,
     Order,
@@ -139,18 +136,6 @@ class BarteClient:
         response.raise_for_status()
         return from_dict(
             data_class=PixCharge, data=response.json(), config=DACITE_CONFIG
-        )
-
-    def simulate_installments(self, amount: int, brand: str) -> InstallmentOptions:
-        """Simulate credit card installments"""
-        endpoint = f"{self.base_url}/v1/simulate/installments"
-        params = {"amount": amount, "brand": brand}
-        response = requests.get(endpoint, headers=self.headers, params=params)
-        response.raise_for_status()
-        return from_dict(
-            data_class=InstallmentOptions,
-            data=response.json(),
-            config=Config(cast=[List[InstallmentSimulation]]),
         )
 
     def refund_charge(self, charge_id: str, as_fraud: Optional[bool] = False) -> Refund:
