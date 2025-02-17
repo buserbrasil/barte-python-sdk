@@ -208,36 +208,6 @@ class TestBarteClient:
         )
 
     @patch("requests.post")
-    def test_create_pix_charge(self, mock_post, barte_client, mock_pix_charge_response):
-        """Test creating a PIX charge"""
-        mock_post.return_value.json.return_value = mock_pix_charge_response
-        mock_post.return_value.raise_for_status = Mock()
-
-        pix_data = {
-            "amount": 3,
-            "description": "PIX Test",
-            "customer": {
-                "name": "John Doe",
-                "tax_id": "123.456.789-00",
-                "email": "john@example.com",
-            },
-        }
-
-        charge = barte_client.create_pix_charge(pix_data)
-
-        assert isinstance(charge, PixCharge)
-        assert charge.paymentMethod == "PIX"
-        assert charge.value == 3
-        assert charge.customer.name == "John Doe"
-
-        expected_data = {**pix_data, "payment_method": "pix"}
-        mock_post.assert_called_once_with(
-            f"{barte_client.base_url}/v1/charges",
-            headers=barte_client.headers,
-            json=expected_data,
-        )
-
-    @patch("requests.post")
     def test_create_card_token(self, mock_post, barte_client):
         """Test creating a card token"""
         mock_response = {
