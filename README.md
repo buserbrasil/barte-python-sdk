@@ -24,15 +24,18 @@ pip install barte-python-sdk
 from barte import BarteClient
 
 # Initialize the client
-client = BarteClient(api_key="your_api_key")
+client = BarteClient(api_key="your_api_key", environment="sandbox")
 
 # Create a card token
-card_token = client.create_card_token(
-    card_number="4111111111111111",
-    expiration_month="12",
-    expiration_year="2025",
-    security_code="123"
-)
+buyer = client.get_buyer({"documentNumber": "00011122233"})
+
+card_token = client.create_card_token({
+    "holderName": "Barte Card Test",
+    "number": "5383638854440891",
+    "cvv": "220",
+    "expiration": "12/2025",
+    "buyerUuid": buyer.uuid,
+})
 ```
 
 ## Documentation
@@ -44,14 +47,9 @@ card_token = client.create_card_token(
 
 To run the test suite, follow these steps:
 
-1. Install development dependencies:
+1. Run tests using pytest:
 ```bash
-pip install -r requirements-dev.txt
-```
-
-2. Run tests using pytest:
-```bash
-python -m pytest tests/ -v
+uv run pytest tests/ -v --cov=barte --cov-report=xml
 ```
 
 ## Examples
@@ -64,14 +62,9 @@ git clone https://github.com/buser-brasil/barte-python-sdk.git
 cd barte-python-sdk
 ```
 
-2. Install the package in development mode:
+2. Run specific examples:
 ```bash
-uv pip install -e .
-```
-
-3. Run specific examples:
-```bash
-python examples/card_token_example.py
+uv run examples/card_token_example.py
 ```
 
 Make sure to set up your API credentials before running the examples.
@@ -88,7 +81,7 @@ git checkout -b feature/amazing-feature
 
 3. Install development dependencies:
 ```bash
-pip install -r requirements-dev.txt
+uv sync
 ```
 
 4. Make your changes and ensure tests pass
