@@ -1,5 +1,6 @@
 [project]
 name = "barte-python-sdk"
+readme = "README.md"
 dynamic = ["version"]
 description = "Python SDK for integration with Barte API"
 requires-python = ">=3.11"
