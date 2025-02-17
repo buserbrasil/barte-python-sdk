@@ -109,18 +109,6 @@ class BarteClient:
             data_class=CardToken, data=response.json(), config=DACITE_CONFIG
         )
 
-    def create_pix_charge(self, data: Dict[str, Any]) -> PixCharge:
-        """Create a PIX charge"""
-        endpoint = f"{self.base_url}/v1/charges"
-
-        pix_data = {**data, "payment_method": "pix"}
-
-        response = requests.post(endpoint, headers=self.headers, json=pix_data)
-        response.raise_for_status()
-        return from_dict(
-            data_class=PixCharge, data=response.json(), config=DACITE_CONFIG
-        )
-
     def get_pix_qrcode(self, charge_id: str) -> PixCharge:
         """Get PIX QR Code data for a charge"""
         endpoint = f"{self.base_url}/v2/charges/{charge_id}"
