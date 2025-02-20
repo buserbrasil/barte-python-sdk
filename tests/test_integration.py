@@ -123,3 +123,8 @@ class TestBarteIntegration:
 
         charge = client.get_charge(order.charges[0].uuid)
         assert charge.uuid == order.charges[0].uuid
+
+    def test_get_installments(self, client):
+        installments = client.get_installments(amount=200, max_installments=4)
+        assert len(installments) == 4
+        assert installments[0].totalAmount == 200

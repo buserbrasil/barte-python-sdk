@@ -1,4 +1,5 @@
-from typing import Dict, Any, Optional, Union
+from decimal import Decimal
+from typing import Dict, Any, Optional, Union, List
 from dataclasses import asdict
 import requests
 from dacite import from_dict
@@ -13,6 +14,7 @@ from .models import (
     Order,
     ChargeList,
     OrderPayload,
+    InstallmentOption,
 )
 
 
@@ -131,3 +133,16 @@ class BarteClient:
             "PATCH", f"/v2/charges/{charge_id}/refund", json={"asFraud": as_fraud}
         )
         return from_dict(data_class=Refund, data=json_response, config=DACITE_CONFIG)
+
+    def get_installments(
+        self, amount: Decimal, max_installments: int
+    ) -> List[InstallmentOption]:
+        """Get a list of installments value"""
+        json_response = self._request(
+            "GET",
+            "/v2/orders/installments-payment",
+            params={"amount": amount, "maxInstallments": max_installments},
+        )
+        return [
+            from_dict(data_class=InstallmentOption, data=item) for item in json_response
+        ]
