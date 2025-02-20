@@ -292,3 +292,10 @@ class OrderPayload:
     description: Optional[str]
     subSellerPaymentRequest: Optional[SubSellerPaymentRequest]
     metadata: Optional[List[Metadata]]
+
+
+@dataclass
+class InstallmentOption:
+    installments: int
+    installmentAmount: float
+    totalAmount: float

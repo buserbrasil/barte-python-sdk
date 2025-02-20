@@ -3,7 +3,7 @@ from datetime import datetime
 from unittest.mock import patch, Mock
 from dacite import from_dict
 from barte import BarteClient, Charge, CardToken, Refund, PixCharge
-from barte.models import DACITE_CONFIG, Order
+from barte.models import DACITE_CONFIG, Order, InstallmentOption
 
 
 @pytest.fixture
@@ -134,6 +134,16 @@ def mock_list_response():
         "first": True,
         "empty": False,
     }
+
+
+@pytest.fixture
+def mock_installments_reponse():
+    return [
+        {"installments": 1, "installmentAmount": 200.00, "totalAmount": 200.00},
+        {"installments": 2, "installmentAmount": 107.30, "totalAmount": 214.60},
+        {"installments": 3, "installmentAmount": 72.20, "totalAmount": 216.60},
+        {"installments": 4, "installmentAmount": 54.50, "totalAmount": 218.00},
+    ]
 
 
 class TestBarteClient:
@@ -389,6 +399,29 @@ class TestBarteClient:
             "GET",
             f"{barte_client.base_url}/v2/charges/{pix_charge.uuid}",
             params=None,
+            json=None,
+        )
+
+    @patch("barte.client.requests.Session.request")
+    def test_get_installments(
+        self, mock_request, barte_client, mock_installments_reponse
+    ):
+        """Test getting a specific charge using get_charge"""
+        mock_request.return_value.json.return_value = mock_installments_reponse
+        mock_request.return_value.raise_for_status = Mock()
+
+        amount = 200
+        max_installments = 4
+
+        installments = barte_client.get_installments(amount, max_installments)
+        assert len(installments) == 4
+        assert installments[0].installmentAmount == 200
+        assert isinstance(installments[0], InstallmentOption)
+
+        mock_request.assert_called_once_with(
+            "GET",
+            f"{barte_client.base_url}/v2/orders/installments-payment",
+            params={"amount": amount, "maxInstallments": max_installments},
             json=None,
         )
 
