@@ -1,14 +1,13 @@
 from .client import BarteClient
 from .models import (
-    Charge,
     CardToken,
-    Refund,
-    PixCharge,
+    Charge,
     Customer,
+    PixCharge,
     PixQRCode,
+    Refund,
 )
 
-__version__ = "0.1.0"
 
 __all__ = [
     "BarteClient",

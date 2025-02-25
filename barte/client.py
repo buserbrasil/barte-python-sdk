@@ -1,20 +1,24 @@
-from decimal import Decimal
-from typing import Dict, Any, Optional, Union, List
 from dataclasses import asdict
+from decimal import Decimal
+from typing import Any, Dict, List, Optional, Union
+
 import requests
 from dacite import from_dict
+
+from barte.__version__ import __version__
+
 from .models import (
-    Charge,
-    CardToken,
-    Refund,
-    PixCharge,
     DACITE_CONFIG,
     Buyer,
     BuyerList,
-    Order,
+    CardToken,
+    Charge,
     ChargeList,
-    OrderPayload,
     InstallmentOption,
+    Order,
+    OrderPayload,
+    PixCharge,
+    Refund,
 )
 
 
@@ -44,9 +48,12 @@ class BarteClient:
             if environment == "production"
             else "https://sandbox-api.barte.com"
         )
-        self.headers = {"X-Token-Api": api_key, "Content-Type": "application/json"}
         self.session = requests.Session()
-        self.session.headers.update(self.headers)
+        self.session.headers.update({
+            "X-Token-Api": api_key,
+            "Content-Type": "application/json",
+            "User-Agent": f"barte-client/python version={__version__}"
+        })
         BarteClient._instance = self
 
     @classmethod
