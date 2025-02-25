@@ -49,11 +49,13 @@ class BarteClient:
             else "https://sandbox-api.barte.com"
         )
         self.session = requests.Session()
-        self.session.headers.update({
-            "X-Token-Api": api_key,
-            "Content-Type": "application/json",
-            "User-Agent": f"barte-client/python version={__version__}"
-        })
+        self.session.headers.update(
+            {
+                "X-Token-Api": api_key,
+                "Content-Type": "application/json",
+                "User-Agent": f"barte-client/python version={__version__}",
+            }
+        )
         BarteClient._instance = self
 
     @classmethod
