@@ -42,7 +42,7 @@ class ChargerCustomer:
     name: str
     email: str
     phone: str
-    alternativeEmail: str
+    alternativeEmail: Optional[str]
 
 
 @dataclass
@@ -77,7 +77,7 @@ class OrderCustomer:
     name: str
     email: str
     phone: str
-    alternativeEmail: str
+    alternativeEmail: Optional[str]
 
 
 @dataclass
@@ -156,7 +156,7 @@ class Buyer:
     countryCode: str
     phone: str
     email: str
-    alternativeEmail: str
+    alternativeEmail: Optional[str]
 
 
 @dataclass
@@ -299,3 +299,17 @@ class InstallmentOption:
     installments: int
     installmentAmount: float
     totalAmount: float
+
+
+@dataclass
+class BuyerCard:
+    uuid: str
+    status: str
+    createdAt: datetime
+    brand: str
+    first6digits: str
+    last4digits: str
+    buyerId: str
+    expirationMonth: str
+    expirationYear: str
+    cardId: str
