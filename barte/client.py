@@ -10,6 +10,7 @@ from barte.__version__ import __version__
 from .models import (
     DACITE_CONFIG,
     Buyer,
+    BuyerCard,
     BuyerList,
     CardToken,
     Charge,
@@ -91,6 +92,10 @@ class BarteClient:
         url = f"{self.base_url}{path}"
         response = self.session.request(method, url, params=params, json=json)
         response.raise_for_status()
+
+        if response.status_code == 204:
+            return None
+
         return response.json()
 
     def create_order(self, data: Union[Dict[str, Any], OrderPayload]) -> Order:
@@ -126,10 +131,22 @@ class BarteClient:
         json_response = self._request("GET", "/v2/buyers", params=filters)
         return from_dict(data_class=BuyerList, data=json_response, config=DACITE_CONFIG)
 
+    def update_buyer(self, uuid: str, buyer_data: Dict[str, Any]) -> None:
+        """Get buyers based on filters"""
+        self._request("PUT", f"/v2/buyers/{uuid}", json=buyer_data)
+
     def create_card_token(self, card_data: Dict[str, Any]) -> CardToken:
         """Create a token for a credit card"""
         json_response = self._request("POST", "/v2/cards", json=card_data)
         return from_dict(data_class=CardToken, data=json_response, config=DACITE_CONFIG)
+
+    def get_buyer_cards(self, buyer_id: str) -> List[BuyerCard]:
+        """Create a token for a credit card"""
+        json_response = self._request("GET", f"/payment/v1/cards/{buyer_id}")
+        return [
+            from_dict(data_class=BuyerCard, data=item, config=DACITE_CONFIG)
+            for item in json_response
+        ]
 
     def get_pix_qrcode(self, charge_id: str) -> PixCharge:
         """Get PIX QR Code data for a charge"""

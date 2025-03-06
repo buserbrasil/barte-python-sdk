@@ -146,6 +146,61 @@ def mock_installments_reponse():
     ]
 
 
+@pytest.fixture
+def mock_buyer():
+    return {
+        "uuid": "fdfc8dd7-920e-42f1-9015-24e55fb37c6b",
+        "document": "54120712605",
+        "name": "John Doe",
+        "email": "johndoe@email.com",
+        "phone": "11999999999",
+        "countryCode": "+55",
+        "alternativeEmail": "",
+    }
+
+
+@pytest.fixture
+def mock_buyer_cards_reponse():
+    return [
+        {
+            "uuid": "2104da5d-376d-4fc8-bf70-dc91de9ce4b1",
+            "status": "ACTIVE",
+            "createdAt": "2025-02-23",
+            "brand": "mastercard",
+            "first6digits": "538363",
+            "last4digits": "0891",
+            "buyerId": "fdfc8dd7-920e-42f1-9015-24e55fb37c6b",
+            "expirationMonth": "12",
+            "expirationYear": "2025",
+            "cardId": "031c4b4d-5e6b-43f3-bc14-aa8388e5f612",
+        },
+        {
+            "uuid": "ad5ed29a-a174-4ba6-b86e-e2107cec14ba",
+            "status": "ACTIVE",
+            "createdAt": "2025-02-24",
+            "brand": "mastercard",
+            "first6digits": "538363",
+            "last4digits": "0891",
+            "buyerId": "fdfc8dd7-920e-42f1-9015-24e55fb37c6b",
+            "expirationMonth": "12",
+            "expirationYear": "2025",
+            "cardId": "2830f415-993b-4dda-baa8-61d7a9452a3d",
+        },
+        {
+            "uuid": "b0d1a3a4-7041-46cc-b02c-514c0ed31c70",
+            "status": "ACTIVE",
+            "createdAt": "2025-02-24",
+            "brand": "mastercard",
+            "first6digits": "538363",
+            "last4digits": "0891",
+            "buyerId": "fdfc8dd7-920e-42f1-9015-24e55fb37c6b",
+            "expirationMonth": "12",
+            "expirationYear": "2025",
+            "cardId": "5f68a932-11a4-4f21-bdca-1788593c3264",
+        },
+    ]
+
+
 class TestBarteClient:
     @patch("barte.client.requests.Session.request")
     def test_request_get(self, mock_request, barte_client):
@@ -423,6 +478,53 @@ class TestBarteClient:
             f"{barte_client.base_url}/v2/orders/installments-payment",
             params={"amount": amount, "maxInstallments": max_installments},
             json=None,
+        )
+
+    @patch("barte.client.requests.Session.request")
+    def test_get_buyer_cards(
+        self, mock_request, barte_client, mock_buyer_cards_reponse, mock_buyer
+    ):
+        """Test getting list of buyer cards"""
+        mock_request.return_value.json.return_value = mock_buyer_cards_reponse
+        mock_request.return_value.raise_for_status = Mock()
+
+        card_list = barte_client.get_buyer_cards(mock_buyer["uuid"])
+        assert len(card_list) == 3
+        assert card_list[0].uuid == mock_buyer_cards_reponse[0]["uuid"]
+        assert card_list[0].buyerId == mock_buyer["uuid"]
+
+        mock_request.assert_called_once_with(
+            "GET",
+            f"{barte_client.base_url}/payment/v1/cards/{mock_buyer['uuid']}",
+            params=None,
+            json=None,
+        )
+
+    @patch("barte.client.requests.Session.request")
+    def test_update_buyer(self, mock_request, barte_client, mock_buyer):
+        """Test update buyer data"""
+        mock_response = Mock()
+        mock_response.status_code = 204
+        mock_response.raise_for_status = Mock()
+        mock_request.return_value = mock_response
+
+        buyer_uuid = mock_buyer["uuid"]
+        buyer_data = {
+            "name": "New Name",
+            "email": "newemail@mail.com",
+            "phone": "99988882222",
+            "alternativeEmail": "",
+        }
+
+        result = barte_client.update_buyer(buyer_uuid, buyer_data)
+
+        assert result is None
+
+        mock_request.assert_called_once_with(
+            "PUT",
+            f"{barte_client.base_url}/v2/buyers/{buyer_uuid}",
+            params=None,
+            json=buyer_data,
         )
 
     def test_client_singleton(self):
