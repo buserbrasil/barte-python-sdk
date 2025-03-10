@@ -1,9 +1,11 @@
-import pytest
 from datetime import datetime
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
+
+import pytest
 from dacite import from_dict
-from barte import BarteClient, Charge, CardToken, Refund, PixCharge, PartialRefund
-from barte.models import DACITE_CONFIG, Order, InstallmentOption
+
+from barte import BarteClient, CardToken, Charge, PartialRefund, PixCharge
+from barte.models import DACITE_CONFIG, InstallmentOption, Order
 
 
 @pytest.fixture
@@ -387,7 +389,7 @@ class TestBarteClient:
         refund = barte_client.refund_charge(
             "d54f6553-8bcf-4376-a995-aaffb6d29492", as_fraud=False
         )
-        assert isinstance(refund, Refund)
+        assert isinstance(refund, Charge)
         assert refund.uuid == "d54f6553-8bcf-4376-a995-aaffb6d29492"
         assert refund.value == 23.00
         assert refund.status == "REFUND"
@@ -576,4 +578,30 @@ class TestBarteClient:
             f"{barte_client.base_url}/v2/charges/partial-refund/d54f6553-8bcf-4376-a995-aaffb6d29492",
             params=None,
             json={"value": refund_value},
+        )
+
+    @patch("barte.client.requests.Session.request")
+    def test_get_refund_detail(self, mock_request, barte_client):
+        """Test get a refund detail"""
+        refund_uuid = "862ab45a-7a5a-40ee-a271-a23710e65a59"
+
+        mock_response = [{"uuid": refund_uuid, "value": 96.76, "originalValue": 163.43}]
+
+        mock_response_obj = Mock()
+        mock_response_obj.json.return_value = mock_response
+        mock_response_obj.raise_for_status = Mock()
+        mock_request.return_value = mock_response_obj
+
+        refund = barte_client.get_refund(refund_uuid)
+
+        assert isinstance(refund[0], PartialRefund)
+        assert refund[0].uuid == refund_uuid
+        assert refund[0].value == 96.76
+        assert refund[0].originalValue == 163.43
+
+        mock_request.assert_called_once_with(
+            "GET",
+            f"{barte_client.base_url}/v2/charges/partial-refund/{refund_uuid}",
+            params=None,
+            json=None,
         )

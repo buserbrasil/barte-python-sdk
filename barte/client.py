@@ -18,9 +18,9 @@ from .models import (
     InstallmentOption,
     Order,
     OrderPayload,
+    PartialRefund,
     PixCharge,
     Refund,
-    PartialRefund,
 )
 
 
@@ -154,12 +154,12 @@ class BarteClient:
         json_response = self._request("GET", f"/v2/charges/{charge_id}")
         return from_dict(data_class=PixCharge, data=json_response, config=DACITE_CONFIG)
 
-    def refund_charge(self, charge_id: str, as_fraud: Optional[bool] = False) -> Refund:
+    def refund_charge(self, charge_id: str, as_fraud: Optional[bool] = False) -> Charge:
         """Refund a charge"""
         json_response = self._request(
             "PATCH", f"/v2/charges/{charge_id}/refund", json={"asFraud": as_fraud}
         )
-        return from_dict(data_class=Refund, data=json_response, config=DACITE_CONFIG)
+        return from_dict(data_class=Charge, data=json_response, config=DACITE_CONFIG)
 
     def partial_refund_charge(self, charge_id: str, value: Decimal) -> List[Refund]:
         """Refund a charge partialy"""
@@ -168,6 +168,14 @@ class BarteClient:
         )
         return [
             from_dict(data_class=PartialRefund, data=item, config=DACITE_CONFIG)
+            for item in json_response
+        ]
+
+    def get_refund(self, charge_id: str) -> List[Refund]:
+        """Get refund detail"""
+        json_response = self._request("GET", f"/v2/charges/partial-refund/{charge_id}")
+        return [
+            from_dict(data_class=Refund, data=item, config=DACITE_CONFIG)
             for item in json_response
         ]
 
