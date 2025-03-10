@@ -20,6 +20,7 @@ from .models import (
     OrderPayload,
     PixCharge,
     Refund,
+    PartialRefund,
 )
 
 
@@ -159,6 +160,16 @@ class BarteClient:
             "PATCH", f"/v2/charges/{charge_id}/refund", json={"asFraud": as_fraud}
         )
         return from_dict(data_class=Refund, data=json_response, config=DACITE_CONFIG)
+
+    def partial_refund_charge(self, charge_id: str, value: Decimal) -> List[Refund]:
+        """Refund a charge partialy"""
+        json_response = self._request(
+            "PATCH", f"/v2/charges/partial-refund/{charge_id}", json={"value": value}
+        )
+        return [
+            from_dict(data_class=PartialRefund, data=item, config=DACITE_CONFIG)
+            for item in json_response
+        ]
 
     def get_installments(
         self, amount: Decimal, max_installments: int

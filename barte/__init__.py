@@ -6,6 +6,7 @@ from .models import (
     PixCharge,
     PixQRCode,
     Refund,
+    PartialRefund,
 )
 
 
@@ -17,4 +18,5 @@ __all__ = [
     "PixCharge",
     "Customer",
     "PixQRCode",
+    "PartialRefund",
 ]

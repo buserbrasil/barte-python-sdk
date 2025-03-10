@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime
 from unittest.mock import patch, Mock
 from dacite import from_dict
-from barte import BarteClient, Charge, CardToken, Refund, PixCharge
+from barte import BarteClient, Charge, CardToken, Refund, PixCharge, PartialRefund
 from barte.models import DACITE_CONFIG, Order, InstallmentOption
 
 
@@ -202,6 +202,25 @@ def mock_buyer_cards_reponse():
 
 
 class TestBarteClient:
+    def test_client_singleton(self):
+        """Test client singleton pattern"""
+        # Reset singleton for initial state
+        BarteClient._instance = None
+
+        with pytest.raises(RuntimeError) as exc_info:
+            BarteClient.get_instance()
+        assert "BarteClient not initialized" in str(exc_info.value)
+
+        client1 = BarteClient(api_key="test_key", environment="sandbox")
+        assert BarteClient.get_instance() == client1
+
+        client2 = BarteClient(api_key="another_key", environment="sandbox")
+        assert BarteClient.get_instance() == client2
+        assert client2.api_key == "another_key"
+
+        # Reset singleton for other tests
+        BarteClient._instance = None
+
     @patch("barte.client.requests.Session.request")
     def test_request_get(self, mock_request, barte_client):
         """Test _request method with GET (no JSON data)"""
@@ -527,21 +546,34 @@ class TestBarteClient:
             json=buyer_data,
         )
 
-    def test_client_singleton(self):
-        """Test client singleton pattern"""
-        # Reset singleton for initial state
-        BarteClient._instance = None
+    @patch("barte.client.requests.Session.request")
+    def test_partial_refund(self, mock_request, barte_client):
+        """Test partial refund of a charge"""
+        mock_response = [
+            {
+                "uuid": "d54f6553-8bcf-4376-a995-aaffb6d29492",
+                "value": 13.00,
+            }
+        ]
 
-        with pytest.raises(RuntimeError) as exc_info:
-            BarteClient.get_instance()
-        assert "BarteClient not initialized" in str(exc_info.value)
+        mock_response_obj = Mock()
+        mock_response_obj.json.return_value = mock_response
+        mock_response_obj.raise_for_status = Mock()
+        mock_request.return_value = mock_response_obj
 
-        client1 = BarteClient(api_key="test_key", environment="sandbox")
-        assert BarteClient.get_instance() == client1
+        refund_value = 10
 
-        client2 = BarteClient(api_key="another_key", environment="sandbox")
-        assert BarteClient.get_instance() == client2
-        assert client2.api_key == "another_key"
+        refund = barte_client.partial_refund_charge(
+            "d54f6553-8bcf-4376-a995-aaffb6d29492", value=refund_value
+        )
 
-        # Reset singleton for other tests
-        BarteClient._instance = None
+        assert isinstance(refund[0], PartialRefund)
+        assert refund[0].uuid == "d54f6553-8bcf-4376-a995-aaffb6d29492"
+        assert refund[0].value == 13.00
+
+        mock_request.assert_called_once_with(
+            "PATCH",
+            f"{barte_client.base_url}/v2/charges/partial-refund/d54f6553-8bcf-4376-a995-aaffb6d29492",
+            params=None,
+            json={"value": refund_value},
+        )
