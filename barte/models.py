@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List, Literal
+from typing import List, Literal, Optional
+
 from dacite import Config
 from dateutil.parser import parse as parse_date
 
@@ -137,14 +138,14 @@ class PixCharge(Charge):
 
 
 @dataclass
-class Refund(Charge):
-    pass
-
-
-@dataclass
 class PartialRefund:
     uuid: str
     value: float
+
+
+@dataclass
+class Refund(PartialRefund):
+    originalValue: float
 
 
 @dataclass
