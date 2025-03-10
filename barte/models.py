@@ -142,6 +142,12 @@ class Refund(Charge):
 
 
 @dataclass
+class PartialRefund:
+    uuid: str
+    value: float
+
+
+@dataclass
 class PixQRCode:
     qr_code: str
     qr_code_image: str
