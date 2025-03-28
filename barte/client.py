@@ -111,6 +111,11 @@ class BarteClient:
         json_response = self._request("GET", f"/v2/charges/{charge_id}")
         return from_dict(data_class=Charge, data=json_response, config=DACITE_CONFIG)
 
+    def get_order(self, order_id: str) -> Order:
+        """Get a specific order"""
+        json_response = self._request("GET", f"/v2/orders/{order_id}")
+        return from_dict(data_class=Order, data=json_response, config=DACITE_CONFIG)
+
     def list_charges(self, params: Optional[Dict[str, Any]] = None) -> ChargeList:
         """List all charges with optional filters"""
         json_response = self._request("GET", "/v2/charges", params=params)
