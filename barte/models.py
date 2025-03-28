@@ -58,6 +58,7 @@ class Charge:
     paidDate: Optional[datetime]
     authorizationCode: Optional[str]
     authorizationNsu: Optional[str]
+    interestAmount: Optional[float]
 
     def refund(self, as_fraud: Optional[bool] = False) -> "Refund":
         from .client import BarteClient
@@ -90,6 +91,7 @@ class OrderCharge:
     paymentMethod: str
     status: str
     customer: OrderCustomer
+    interestAmount: Optional[float] = None
     authorizationCode: Optional[str] = None
     authorizationNsu: Optional[str] = None
     paidDate: Optional[datetime] = None
