@@ -15,6 +15,7 @@ from .models import (
     CardToken,
     Charge,
     ChargeList,
+    ErrorResponse,
     InstallmentOption,
     Order,
     OrderPayload,
@@ -104,6 +105,13 @@ class BarteClient:
         if isinstance(data, OrderPayload):
             data = asdict(data)
         json_response = self._request("POST", "/v2/orders", json=data)
+
+        if "errors" in json_response:
+            error_response = from_dict(
+                data_class=ErrorResponse, data=json_response, config=DACITE_CONFIG
+            )
+            error_response.raise_exception()
+
         return from_dict(data_class=Order, data=json_response, config=DACITE_CONFIG)
 
     def get_charge(self, charge_id: str) -> Charge:

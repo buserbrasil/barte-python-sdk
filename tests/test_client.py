@@ -5,6 +5,7 @@ import pytest
 from dacite import from_dict
 
 from barte import BarteClient, CardToken, Charge, PartialRefund, PixCharge
+from barte.exceptions import BarteError
 from barte.models import DACITE_CONFIG, InstallmentOption, Order
 
 
@@ -57,6 +58,30 @@ def mock_order_response():
                 "authorizationNsu": "4851680",
             }
         ],
+    }
+
+
+@pytest.fixture
+def mock_order_error_response():
+    return {
+        "errors": [
+            {
+                "status": "400",
+                "code": "BAR-7005",
+                "title": "generic",
+                "description": "Erro no Pagamento",
+                "action": "Verifique os detalhes da transação e/ou contate a central do seu cartão",
+                "additionalInfo": {
+                    "chargeUUID": "c4e5bf04-7dd3-42bd-9904-f46c8ed43b3c",
+                    "provider": "Barte",
+                },
+            }
+        ],
+        "metadata": {
+            "totalRecords": 1,
+            "totalPages": 1,
+            "requestDatetime": "2025-04-15T10:34:29.576147084-03:00[America/Sao_Paulo]",
+        },
     }
 
 
@@ -314,6 +339,24 @@ class TestBarteClient:
             params=None,
             json=order_data,
         )
+
+    @patch("barte.client.requests.Session.request")
+    def test_create_order_with_invalid_card(
+        self, mock_request, barte_client, mock_order_error_response
+    ):
+        """Test creating a new order with invalid card"""
+        mock_request.return_value.json.return_value = mock_order_error_response
+        mock_request.return_value.raise_for_status = Mock()
+
+        with pytest.raises(BarteError) as exc_info:
+            barte_client.create_order({})
+
+        assert exc_info.value.code == "BAR-7005"
+        assert (
+            exc_info.value.action
+            == "Verifique os detalhes da transação e/ou contate a central do seu cartão"
+        )
+        assert exc_info.value.message == "Erro no Pagamento"
 
     @patch("barte.client.requests.Session.request")
     def test_create_card_token(self, mock_request, barte_client):
