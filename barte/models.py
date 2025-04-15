@@ -5,6 +5,8 @@ from typing import List, Literal, Optional
 from dacite import Config
 from dateutil.parser import parse as parse_date
 
+from barte.exceptions import BarteError
+
 # Default config for dacite with datetime conversion
 DACITE_CONFIG = Config(
     type_hooks={datetime: lambda x: parse_date(x) if isinstance(x, str) else x}
@@ -322,3 +324,44 @@ class BuyerCard:
     expirationMonth: str
     expirationYear: str
     cardId: str
+
+
+@dataclass
+class ErrorAdditionalInfo:
+    chargeUUID: Optional[str] = None
+    provider: Optional[str] = None
+    # Adicione outros campos conforme necessário
+
+
+@dataclass
+class ErrorItem:
+    status: str
+    code: str
+    title: str
+    description: str
+    action: str
+    additionalInfo: Optional[ErrorAdditionalInfo] = None
+
+
+@dataclass
+class ErrorMetadata:
+    totalRecords: int
+    totalPages: int
+    requestDatetime: str
+
+
+@dataclass
+class ErrorResponse:
+    errors: List[ErrorItem]
+    metadata: ErrorMetadata
+
+    def raise_exception(self):
+        error = self.errors[0]
+        raise BarteError(
+            message=error.description,
+            action=error.action,
+            code=error.code,
+            charge_uuid=error.additionalInfo.chargeUUID
+            if error.additionalInfo
+            else None,
+        )
