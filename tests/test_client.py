@@ -86,6 +86,24 @@ def mock_order_error_response():
 
 
 @pytest.fixture
+def mock_order_unauthorized_error_response():
+    return {
+        "errors": [
+            {
+                "code": "UNAUTHORIZED",
+                "title": "UNAUTHORIZED",
+                "description": "Unauthorized",
+            }
+        ],
+        "metadata": {
+            "totalRecords": 1,
+            "totalPages": 1,
+            "requestDatetime": "2025-04-15T10:34:29.576147084-03:00[America/Sao_Paulo]",
+        },
+    }
+
+
+@pytest.fixture
 def mock_charge_response():
     return {
         "uuid": "8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31",
@@ -357,6 +375,23 @@ class TestBarteClient:
             == "Verifique os detalhes da transação e/ou contate a central do seu cartão"
         )
         assert exc_info.value.message == "Erro no Pagamento"
+
+    @patch("barte.client.requests.Session.request")
+    def test_create_order_with_error_unauthorized(
+        self, mock_request, barte_client, mock_order_unauthorized_error_response
+    ):
+        """Test creating a new order with invalid card"""
+        mock_request.return_value.json.return_value = (
+            mock_order_unauthorized_error_response
+        )
+        mock_request.return_value.raise_for_status = Mock()
+
+        with pytest.raises(BarteError) as exc_info:
+            barte_client.create_order({})
+
+        assert exc_info.value.code == "UNAUTHORIZED"
+        assert exc_info.value.message == "Unauthorized"
+        assert exc_info.value.charge_uuid is None
 
     @patch("barte.client.requests.Session.request")
     def test_create_card_token(self, mock_request, barte_client):
