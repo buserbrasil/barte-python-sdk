@@ -335,11 +335,11 @@ class ErrorAdditionalInfo:
 
 @dataclass
 class ErrorItem:
-    status: str
     code: str
     title: str
     description: str
-    action: str
+    action: Optional[str] = ""
+    status: Optional[str] = ""
     additionalInfo: Optional[ErrorAdditionalInfo] = None
 
 
@@ -355,12 +355,14 @@ class ErrorResponse:
     errors: List[ErrorItem]
     metadata: ErrorMetadata
 
-    def raise_exception(self):
+    def raise_exception(self, response=None):
         error = self.errors[0]
+
         raise BarteError(
             message=error.description,
             action=error.action,
             code=error.code,
+            response=response,
             charge_uuid=error.additionalInfo.chargeUUID
             if error.additionalInfo
             else None,

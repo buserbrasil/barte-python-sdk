@@ -110,7 +110,7 @@ class BarteClient:
             error_response = from_dict(
                 data_class=ErrorResponse, data=json_response, config=DACITE_CONFIG
             )
-            error_response.raise_exception()
+            error_response.raise_exception(response=json_response)
 
         return from_dict(data_class=Order, data=json_response, config=DACITE_CONFIG)
 
