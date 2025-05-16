@@ -135,9 +135,9 @@ class BarteClient:
         """Cancel a specific charge"""
         self._request("DELETE", f"/v2/charges/{charge_id}")
 
-    def create_buyer(self, buyer_data: Dict[str, Any]) -> Buyer:
+    def create_buyer(self, buyer_data: Dict[str, Any], version: str = "v2") -> Buyer:
         """Create a buyer"""
-        json_response = self._request("POST", "/v2/buyers", json=buyer_data)
+        json_response = self._request("POST", f"/{version}/buyers", json=buyer_data)
         return from_dict(data_class=Buyer, data=json_response, config=DACITE_CONFIG)
 
     def get_buyer(self, filters: Dict[str, Any]) -> BuyerList:

@@ -683,3 +683,24 @@ class TestBarteClient:
             params=None,
             json=None,
         )
+
+    @patch("barte.client.requests.Session.request")
+    def test_create_buyer_with_api_version(
+        self, mock_request, barte_client, mock_buyer
+    ):
+        """Test create a buyer with api version"""
+
+        mock_response_obj = Mock()
+        mock_response_obj.json.return_value = mock_buyer
+        mock_response_obj.raise_for_status = Mock()
+        mock_request.return_value = mock_response_obj
+
+        barte_client.create_buyer({})
+        barte_client.create_buyer({}, version="v1")
+
+        urls = [args[0][1] for args in mock_request.call_args_list]
+
+        assert urls == [
+            f"{barte_client.base_url}/v2/buyers",
+            f"{barte_client.base_url}/v1/buyers",
+        ]
