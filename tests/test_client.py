@@ -104,6 +104,24 @@ def mock_order_unauthorized_error_response():
 
 
 @pytest.fixture
+def mock_refund_error_response():
+    return {
+        "errors": [
+            {
+                "code": "BAR-7010",
+                "title": "Refund Error",
+                "description": "Não foi possível realizar o reembolso",
+            }
+        ],
+        "metadata": {
+            "totalRecords": 1,
+            "totalPages": 1,
+            "requestDatetime": "2025-04-15T10:34:29.576147084-03:00[America/Sao_Paulo]",
+        },
+    }
+
+
+@pytest.fixture
 def mock_charge_response():
     return {
         "uuid": "8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31",
@@ -704,3 +722,35 @@ class TestBarteClient:
             f"{barte_client.base_url}/v2/buyers",
             f"{barte_client.base_url}/v1/buyers",
         ]
+
+    @patch("barte.client.requests.Session.request")
+    def test_refund_charge_with_error(
+        self, mock_request, barte_client, mock_refund_error_response
+    ):
+        """Test refund charge returns BarteError on API error"""
+        mock_request.return_value.json.return_value = mock_refund_error_response
+        mock_request.return_value.raise_for_status = Mock()
+
+        with pytest.raises(BarteError) as exc_info:
+            barte_client.refund_charge("d54f6553-8bcf-4376-a995-aaffb6d29492")
+
+        assert exc_info.value.code == "BAR-7010"
+        assert exc_info.value.message == "Não foi possível realizar o reembolso"
+        assert exc_info.value.charge_uuid is None
+
+    @patch("barte.client.requests.Session.request")
+    def test_partial_refund_charge_with_error(
+        self, mock_request, barte_client, mock_refund_error_response
+    ):
+        """Test partial refund charge returns BarteError on API error"""
+        mock_request.return_value.json.return_value = mock_refund_error_response
+        mock_request.return_value.raise_for_status = Mock()
+
+        with pytest.raises(BarteError) as exc_info:
+            barte_client.partial_refund_charge(
+                "d54f6553-8bcf-4376-a995-aaffb6d29492", value=10
+            )
+
+        assert exc_info.value.code == "BAR-7010"
+        assert exc_info.value.message == "Não foi possível realizar o reembolso"
+        assert exc_info.value.charge_uuid is None

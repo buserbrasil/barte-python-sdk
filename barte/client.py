@@ -172,6 +172,13 @@ class BarteClient:
         json_response = self._request(
             "PATCH", f"/v2/charges/{charge_id}/refund", json={"asFraud": as_fraud}
         )
+
+        if "errors" in json_response:
+            error_response = from_dict(
+                data_class=ErrorResponse, data=json_response, config=DACITE_CONFIG
+            )
+            error_response.raise_exception(response=json_response)
+
         return from_dict(data_class=Charge, data=json_response, config=DACITE_CONFIG)
 
     def partial_refund_charge(self, charge_id: str, value: Decimal) -> List[Refund]:
@@ -179,6 +186,13 @@ class BarteClient:
         json_response = self._request(
             "PATCH", f"/v2/charges/partial-refund/{charge_id}", json={"value": value}
         )
+
+        if isinstance(json_response, dict) and "errors" in json_response:
+            error_response = from_dict(
+                data_class=ErrorResponse, data=json_response, config=DACITE_CONFIG
+            )
+            error_response.raise_exception(response=json_response)
+
         return [
             from_dict(data_class=PartialRefund, data=item, config=DACITE_CONFIG)
             for item in json_response
