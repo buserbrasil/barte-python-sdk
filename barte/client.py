@@ -181,7 +181,9 @@ class BarteClient:
 
         return from_dict(data_class=Charge, data=json_response, config=DACITE_CONFIG)
 
-    def partial_refund_charge(self, charge_id: str, value: Decimal) -> List[PartialRefund]:
+    def partial_refund_charge(
+        self, charge_id: str, value: Decimal
+    ) -> List[PartialRefund]:
         """Refund a charge partialy"""
         json_response = self._request(
             "PATCH", f"/v2/charges/partial-refund/{charge_id}", json={"value": value}
