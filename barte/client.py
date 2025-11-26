@@ -168,7 +168,11 @@ class BarteClient:
         return from_dict(data_class=PixCharge, data=json_response, config=DACITE_CONFIG)
 
     def refund_charge(self, charge_id: str, as_fraud: Optional[bool] = False) -> Charge:
-        """Refund a charge"""
+        """Refund a charge
+
+        Raises:
+            BarteError: When the API returns an error response with Barte error codes.
+        """
         json_response = self._request(
             "PATCH", f"/v2/charges/{charge_id}/refund", json={"asFraud": as_fraud}
         )
@@ -184,7 +188,11 @@ class BarteClient:
     def partial_refund_charge(
         self, charge_id: str, value: Decimal
     ) -> List[PartialRefund]:
-        """Refund a charge partialy"""
+        """Refund a charge partialy
+
+        Raises:
+            BarteError: When the API returns an error response with Barte error codes.
+        """
         json_response = self._request(
             "PATCH", f"/v2/charges/partial-refund/{charge_id}", json={"value": value}
         )
