@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from unittest.mock import Mock, patch
 
 import pytest
@@ -748,7 +749,7 @@ class TestBarteClient:
 
         with pytest.raises(BarteError) as exc_info:
             barte_client.partial_refund_charge(
-                "d54f6553-8bcf-4376-a995-aaffb6d29492", value=10
+                "d54f6553-8bcf-4376-a995-aaffb6d29492", value=Decimal("10.00")
             )
 
         assert exc_info.value.code == "BAR-7010"
