@@ -75,7 +75,7 @@ class BarteClient:
         path: str,
         params: Optional[Dict[str, Any]] = None,
         json: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+    ) -> Union[Dict[str, Any], List[Any], None]:
         """
         Private method to centralize HTTP requests.
 
@@ -86,32 +86,41 @@ class BarteClient:
             json: JSON body for POST, PATCH requests.
 
         Returns:
-            The response JSON as a dictionary.
+            The response JSON as a dictionary or list.
 
         Raises:
-            HTTPError: If the HTTP request returned an unsuccessful status code.
+            BarteError: If the API returns an error response with Barte error codes.
+            HTTPError: If the HTTP request returned an unsuccessful status code
+                       without a structured error response.
         """
         url = f"{self.base_url}{path}"
         response = self.session.request(method, url, params=params, json=json)
-        response.raise_for_status()
 
         if response.status_code == 204:
             return None
 
-        return response.json()
+        try:
+            json_response = response.json()
+        except ValueError:
+            response.raise_for_status()
+            return None
+
+        if isinstance(json_response, dict) and "errors" in json_response:
+            error_response = from_dict(
+                data_class=ErrorResponse, data=json_response, config=DACITE_CONFIG
+            )
+            error_response.raise_exception(response=response)
+
+        if not response.ok:
+            response.raise_for_status()
+
+        return json_response
 
     def create_order(self, data: Union[Dict[str, Any], OrderPayload]) -> Order:
         """Create a new order"""
         if isinstance(data, OrderPayload):
             data = asdict(data)
         json_response = self._request("POST", "/v2/orders", json=data)
-
-        if "errors" in json_response:
-            error_response = from_dict(
-                data_class=ErrorResponse, data=json_response, config=DACITE_CONFIG
-            )
-            error_response.raise_exception(response=json_response)
-
         return from_dict(data_class=Order, data=json_response, config=DACITE_CONFIG)
 
     def get_charge(self, charge_id: str) -> Charge:
@@ -176,13 +185,6 @@ class BarteClient:
         json_response = self._request(
             "PATCH", f"/v2/charges/{charge_id}/refund", json={"asFraud": as_fraud}
         )
-
-        if "errors" in json_response:
-            error_response = from_dict(
-                data_class=ErrorResponse, data=json_response, config=DACITE_CONFIG
-            )
-            error_response.raise_exception(response=json_response)
-
         return from_dict(data_class=Charge, data=json_response, config=DACITE_CONFIG)
 
     def partial_refund_charge(
@@ -196,13 +198,6 @@ class BarteClient:
         json_response = self._request(
             "PATCH", f"/v2/charges/partial-refund/{charge_id}", json={"value": value}
         )
-
-        if isinstance(json_response, dict) and "errors" in json_response:
-            error_response = from_dict(
-                data_class=ErrorResponse, data=json_response, config=DACITE_CONFIG
-            )
-            error_response.raise_exception(response=json_response)
-
         return [
             from_dict(data_class=PartialRefund, data=item, config=DACITE_CONFIG)
             for item in json_response
