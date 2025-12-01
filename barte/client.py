@@ -111,8 +111,7 @@ class BarteClient:
             )
             error_response.raise_exception(response=response)
 
-        if not response.ok:
-            response.raise_for_status()
+        response.raise_for_status()
 
         return json_response
 
