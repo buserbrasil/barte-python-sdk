@@ -10,6 +10,7 @@ from barte import BarteClient, CardToken, Charge, PartialRefund, PixCharge
 from barte.exceptions import BarteError
 from barte.models import DACITE_CONFIG, InstallmentOption, Order
 
+
 @pytest.fixture
 def barte_client():
     client = BarteClient(api_key="test_key", environment="sandbox")
@@ -830,7 +831,9 @@ class TestBarteClient:
             barte_client._request("GET", "/v2/orders")
 
     @patch("barte.client.requests.Session.request")
-    def test_request_raises_http_error_on_invalid_json(self, mock_request, barte_client):
+    def test_request_raises_http_error_on_invalid_json(
+        self, mock_request, barte_client
+    ):
         """Test _request raises HTTPError when response is not valid JSON"""
         mock_response = Mock()
         mock_response.status_code = 500
