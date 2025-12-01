@@ -4,11 +4,11 @@ from unittest.mock import Mock, patch
 
 import pytest
 from dacite import from_dict
+from requests.exceptions import HTTPError
 
 from barte import BarteClient, CardToken, Charge, PartialRefund, PixCharge
 from barte.exceptions import BarteError
 from barte.models import DACITE_CONFIG, InstallmentOption, Order
-
 
 @pytest.fixture
 def barte_client():
@@ -819,8 +819,6 @@ class TestBarteClient:
         self, mock_request, barte_client
     ):
         """Test _request raises HTTPError when API returns HTTP error without structured error body"""
-        from requests.exceptions import HTTPError
-
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.ok = False
@@ -834,8 +832,6 @@ class TestBarteClient:
     @patch("barte.client.requests.Session.request")
     def test_request_raises_http_error_on_invalid_json(self, mock_request, barte_client):
         """Test _request raises HTTPError when response is not valid JSON"""
-        from requests.exceptions import HTTPError
-
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.json.side_effect = ValueError("No JSON object could be decoded")
