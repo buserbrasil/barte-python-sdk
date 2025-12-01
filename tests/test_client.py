@@ -791,3 +791,87 @@ class TestBarteClient:
         assert exc_info.value.code == "BAR-7010"
         assert exc_info.value.message == "Não foi possível realizar o reembolso"
         assert exc_info.value.charge_uuid == "abc123-charge-uuid"
+
+    @patch("barte.client.requests.Session.request")
+    def test_request_raises_barte_error_on_http_error_with_error_body(
+        self, mock_request, barte_client, mock_order_error_response
+    ):
+        """Test _request raises BarteError when API returns HTTP error with structured error body"""
+        mock_response = Mock()
+        mock_response.status_code = 400
+        mock_response.ok = False
+        mock_response.json.return_value = mock_order_error_response
+        mock_request.return_value = mock_response
+
+        with pytest.raises(BarteError) as exc_info:
+            barte_client._request("POST", "/v2/orders", json={})
+
+        assert exc_info.value.code == "BAR-7005"
+        assert exc_info.value.message == "Erro no Pagamento"
+        assert (
+            exc_info.value.action
+            == "Verifique os detalhes da transação e/ou contate a central do seu cartão"
+        )
+        assert exc_info.value.charge_uuid == "c4e5bf04-7dd3-42bd-9904-f46c8ed43b3c"
+
+    @patch("barte.client.requests.Session.request")
+    def test_request_raises_http_error_on_http_error_without_error_body(
+        self, mock_request, barte_client
+    ):
+        """Test _request raises HTTPError when API returns HTTP error without structured error body"""
+        from requests.exceptions import HTTPError
+
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.ok = False
+        mock_response.json.return_value = {"message": "Internal Server Error"}
+        mock_response.raise_for_status.side_effect = HTTPError("500 Server Error")
+        mock_request.return_value = mock_response
+
+        with pytest.raises(HTTPError):
+            barte_client._request("GET", "/v2/orders")
+
+    @patch("barte.client.requests.Session.request")
+    def test_request_raises_http_error_on_invalid_json(self, mock_request, barte_client):
+        """Test _request raises HTTPError when response is not valid JSON"""
+        from requests.exceptions import HTTPError
+
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.json.side_effect = ValueError("No JSON object could be decoded")
+        mock_response.raise_for_status.side_effect = HTTPError("500 Server Error")
+        mock_request.return_value = mock_response
+
+        with pytest.raises(HTTPError):
+            barte_client._request("GET", "/v2/orders")
+
+    @patch("barte.client.requests.Session.request")
+    def test_request_returns_none_on_204(self, mock_request, barte_client):
+        """Test _request returns None when API returns 204 No Content"""
+        mock_response = Mock()
+        mock_response.status_code = 204
+        mock_request.return_value = mock_response
+
+        result = barte_client._request("DELETE", "/v2/charges/123")
+
+        assert result is None
+        mock_response.json.assert_not_called()
+
+    @patch("barte.client.requests.Session.request")
+    def test_request_handles_list_response(self, mock_request, barte_client):
+        """Test _request correctly handles list JSON responses"""
+        list_response = [
+            {"uuid": "item1", "value": 100},
+            {"uuid": "item2", "value": 200},
+        ]
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.ok = True
+        mock_response.json.return_value = list_response
+        mock_request.return_value = mock_response
+
+        result = barte_client._request("GET", "/v2/charges/partial-refund/123")
+
+        assert result == list_response
+        assert isinstance(result, list)
+        assert len(result) == 2
