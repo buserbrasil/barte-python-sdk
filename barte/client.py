@@ -236,15 +236,3 @@ class BarteClient:
         return [
             from_dict(data_class=InstallmentOption, data=item) for item in json_response
         ]
-
-
-if __name__ == "__main__":
-    client = BarteClient(
-        api_key="d0c0a8a1-3b74-4f68-8483-8310a303aa8f",
-        environment="sandbox",
-    )
-
-    client.partial_refund_charge(
-        charge_id="30795ecb-9050-4f41-9081-e12419c0511b",
-        value=101,
-    )
