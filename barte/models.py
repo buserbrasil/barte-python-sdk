@@ -353,7 +353,7 @@ class ErrorMetadata:
 @dataclass
 class ErrorResponse:
     errors: List[ErrorItem]
-    metadata: ErrorMetadata
+    metadata: Optional[ErrorMetadata] = None
 
     def raise_exception(self, response=None):
         error = self.errors[0]
