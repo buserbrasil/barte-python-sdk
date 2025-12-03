@@ -143,6 +143,22 @@ def mock_refund_error_response_with_charge_uuid():
 
 
 @pytest.fixture
+def mock_partial_refund_list_error_response():
+    """Error response in list format (used by partial_refund endpoint)"""
+    return [
+        {
+            "errors": [
+                {
+                    "code": "BAR-3002",
+                    "title": "Não é possível estornar esse valor.",
+                    "description": "Valor solicitado é maior que o valor disponível na cobrança.",
+                }
+            ]
+        }
+    ]
+
+
+@pytest.fixture
 def mock_charge_response():
     return {
         "uuid": "8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31",
@@ -874,3 +890,24 @@ class TestBarteClient:
         assert result == list_response
         assert isinstance(result, list)
         assert len(result) == 2
+
+    @patch("barte.client.requests.Session.request")
+    def test_partial_refund_charge_with_list_error_response(
+        self, mock_request, barte_client, mock_partial_refund_list_error_response
+    ):
+        """Test partial refund charge returns BarteError when API returns error in list format"""
+        mock_request.return_value.json.return_value = (
+            mock_partial_refund_list_error_response
+        )
+        mock_request.return_value.raise_for_status = Mock()
+
+        with pytest.raises(BarteError) as exc_info:
+            barte_client.partial_refund_charge(
+                "d54f6553-8bcf-4376-a995-aaffb6d29492", value=Decimal("101.00")
+            )
+
+        assert exc_info.value.code == "BAR-3002"
+        assert (
+            exc_info.value.message
+            == "Valor solicitado é maior que o valor disponível na cobrança."
+        )

@@ -69,6 +69,20 @@ class BarteClient:
             )
         return cls._instance
 
+    def _extract_error_data(
+        self, json_response: Union[Dict[str, Any], List[Any]]
+    ) -> Optional[Dict[str, Any]]:
+        """Extract error data from API response if present."""
+        if isinstance(json_response, dict) and "errors" in json_response:
+            return json_response
+
+        if isinstance(json_response, list) and json_response:
+            first_item = json_response[0]
+            if isinstance(first_item, dict) and "errors" in first_item:
+                return first_item
+
+        return None
+
     def _request(
         self,
         method: str,
@@ -105,9 +119,9 @@ class BarteClient:
             response.raise_for_status()
             return None
 
-        if isinstance(json_response, dict) and "errors" in json_response:
+        if error_data := self._extract_error_data(json_response):
             error_response = from_dict(
-                data_class=ErrorResponse, data=json_response, config=DACITE_CONFIG
+                data_class=ErrorResponse, data=error_data, config=DACITE_CONFIG
             )
             error_response.raise_exception(response=response)
 
