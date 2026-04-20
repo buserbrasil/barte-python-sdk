@@ -15,6 +15,8 @@ from .models import (
     CardToken,
     Charge,
     ChargeList,
+    CreateSellerRequest,
+    CreateSellerResponse,
     ErrorResponse,
     InstallmentOption,
     Order,
@@ -135,6 +137,22 @@ class BarteClient:
             data = asdict(data)
         json_response = self._request("POST", "/v2/orders", json=data)
         return from_dict(data_class=Order, data=json_response, config=DACITE_CONFIG)
+
+    def create_seller(self, data: CreateSellerRequest) -> CreateSellerResponse:
+        """Create a new seller"""
+
+        data = asdict(data)
+
+        json_response = self._request("POST", "/v2/seller", json=data)
+
+        if "x-token-api" in json_response:
+            json_response["x_token_api"] = json_response.pop("x-token-api")
+
+        return from_dict(
+            data_class=CreateSellerResponse,
+            data=json_response,
+            config=DACITE_CONFIG,
+        )
 
     def get_charge(self, charge_id: str) -> Charge:
         """Get a specific charge"""
