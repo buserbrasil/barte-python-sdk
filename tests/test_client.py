@@ -8,7 +8,19 @@ from requests.exceptions import HTTPError
 
 from barte import BarteClient, CardToken, Charge, PartialRefund, PixCharge
 from barte.exceptions import BarteError
-from barte.models import DACITE_CONFIG, InstallmentOption, Order
+from barte.models import (
+    DACITE_CONFIG,
+    CreateSellerAccount,
+    CreateSellerAccountDetails,
+    CreateSellerAddress,
+    CreateSellerContact,
+    CreateSellerOwner,
+    CreateSellerPix,
+    CreateSellerRequest,
+    CreateSellerResponse,
+    InstallmentOption,
+    Order,
+)
 
 
 @pytest.fixture
@@ -301,6 +313,27 @@ def mock_buyer_cards_reponse():
     ]
 
 
+@pytest.fixture
+def mock_create_seller_response():
+    return {
+        "document": "87654321000198",
+        "idSeller": 28451,
+        "companyName": "TECHNOLOGY SOLUTIONS BRASIL LTDA",
+        "email": "suporte@technologysolutions.com.br",
+        "webhook": "https://api.technologysolutions.com.br/webhook",
+        "webhooks": [
+            {
+                "uuid": "123e4567-e89b-12d3-a456-426614174000",
+                "title": "Webhook",
+                "domains": ["ORDER", "SUBSCRIPTION"],
+                "active": True,
+                "url": "https://api.technologysolutions.com.br/webhook",
+            }
+        ],
+        "x-token-api": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    }
+
+
 class TestBarteClient:
     def test_client_singleton(self):
         """Test client singleton pattern"""
@@ -430,6 +463,71 @@ class TestBarteClient:
             == "Verifique os detalhes da transação e/ou contate a central do seu cartão"
         )
         assert exc_info.value.message == "Erro no Pagamento"
+
+    @patch("barte.client.requests.Session.request")
+    def test_create_seller(
+        self, mock_request, barte_client, mock_create_seller_response
+    ):
+        """Test creating a seller using typed CreateSellerRequest payload."""
+        mock_request.return_value.json.return_value = mock_create_seller_response
+        mock_request.return_value.raise_for_status = Mock()
+
+        seller_payload = CreateSellerRequest(
+            document="65800562000165",
+            companyName="Old Order",
+            fantasyName="Old Order Tecnologia",
+            webhook="https://oldorder.com.br",
+            sellerUrl="https://oldorder.com.br",
+            email="o@teste.com",
+            password="cp202729",
+            owner=CreateSellerOwner(
+                name="Joao da Silva",
+                document="51102616010",
+                birthdate="1990-01-01",
+            ),
+            address=CreateSellerAddress(
+                country="BR",
+                state="MG",
+                city="Belo Horizonte",
+                district="Centro",
+                street="Avenida Afonso Pena",
+                zipCode="30130001",
+                number="1500",
+                complement="Sala 202",
+            ),
+            contact=CreateSellerContact(
+                name="Joao Silva",
+                email="joao@oldorder.com",
+                countryCode="55",
+                phone="31999887766",
+            ),
+            account=CreateSellerAccount(
+                account=CreateSellerAccountDetails(
+                    bank="001",
+                    issuer="144111",
+                    issuerDigit="6",
+                    number="1425",
+                    bankDigit="5",
+                    accountType=CreateSellerAccountDetails.AccountType.CHECKING_ACCOUNT,
+                ),
+                transferType=CreateSellerAccount.TransferType.PIX,
+                pix=CreateSellerPix(
+                    keyType=CreateSellerPix.KeyType.CNPJ,
+                    key="65800562000165",
+                ),
+            ),
+        )
+
+        response = barte_client.create_seller(seller_payload)
+
+        assert isinstance(response, CreateSellerResponse)
+        assert response.companyName == "TECHNOLOGY SOLUTIONS BRASIL LTDA"
+        assert response.webhooks[0].uuid == "123e4567-e89b-12d3-a456-426614174000"
+
+        called_json = mock_request.call_args.kwargs["json"]
+        assert called_json["document"] == "65800562000165"
+        assert called_json["account"]["transferType"] == "PIX"
+        assert called_json["owner"]["document"] == "51102616010"
 
     @patch("barte.client.requests.Session.request")
     def test_create_order_with_error_unauthorized(

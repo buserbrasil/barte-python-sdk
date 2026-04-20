@@ -2,6 +2,8 @@ from .client import BarteClient
 from .models import (
     CardToken,
     Charge,
+    CreateSellerRequest,
+    CreateSellerResponse,
     Customer,
     PixCharge,
     PixQRCode,
@@ -19,4 +21,6 @@ __all__ = [
     "Customer",
     "PixQRCode",
     "PartialRefund",
+    "CreateSellerRequest",
+    "CreateSellerResponse",
 ]

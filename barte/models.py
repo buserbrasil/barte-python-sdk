@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from enum import StrEnum
 from typing import List, Literal, Optional
 
 from dacite import Config
@@ -324,6 +325,131 @@ class BuyerCard:
     expirationMonth: str
     expirationYear: str
     cardId: str
+
+
+@dataclass
+class CreateSellerOwner:
+    name: str
+    document: str
+    birthdate: str
+
+
+@dataclass
+class CreateSellerAddress:
+    country: str
+    state: str
+    city: str
+    district: str
+    street: str
+    zipCode: str
+    number: str
+    complement: Optional[str]
+
+
+@dataclass
+class CreateSellerContact:
+    name: str
+    email: str
+    countryCode: str
+    phone: str
+
+
+@dataclass
+class CreateSellerAccountDetails:
+    class AccountType(StrEnum):
+        CHECKING_ACCOUNT = "CHECKING_ACCOUNT"
+        SAVINGS_ACCOUNT = "SAVINGS_ACCOUNT"
+
+    bank: str
+    issuer: str
+    issuerDigit: str
+    number: str
+    bankDigit: str
+    accountType: AccountType
+
+
+@dataclass
+class CreateSellerPix:
+    class KeyType(StrEnum):
+        CPF = "CPF"
+        CNPJ = "CNPJ"
+        EMAIL = "EMAIL"
+        PHONE = "PHONE"
+        DOCUMENTAL = "DOCUMENTAL"
+        ALEATORY_KEY = "ALEATORY_KEY"
+
+    keyType: KeyType
+    key: str
+
+
+@dataclass
+class CreateSellerAccount:
+    class TransferType(StrEnum):
+        PIX = "PIX"
+        BANK_ACCOUNT = "BANK_ACCOUNT"
+
+    account: CreateSellerAccountDetails
+    transferType: TransferType
+    pix: Optional[CreateSellerPix]
+
+
+@dataclass
+class CreateSellerRequest:
+    class MccCpf(StrEnum):
+        VETERINARY_SERVICES = "VETERINARY_SERVICES"
+        SPECIAL_TRADE_CONTRACTORS = "SPECIAL_TRADE_CONTRACTORS"
+        TAXI_CABS_AND_LIMOUSINES = "TAXI_CABS_AND_LIMOUSINES"
+        MISCELLANEOUS_GENERAL_MERCHANDISE = "MISCELLANEOUS_GENERAL_MERCHANDISE"
+        MISCELLANEOUS_FOOD_SHOPS = "MISCELLANEOUS_FOOD_SHOPS"
+        TAILORS_SEAMSTRESSES_MENDING = "TAILORS_SEAMSTRESSES_MENDING"
+        MISCELLANEOUS_APPAREL_SHOPS = "MISCELLANEOUS_APPAREL_SHOPS"
+        DOOR_TO_DOOR_SALES = "DOOR_TO_DOOR_SALES"
+        ARTIST_SUPPLY_CRAFT_SHOPS = "ARTIST_SUPPLY_CRAFT_SHOPS"
+        BEAUTY_AND_BARBER_SHOPS = "BEAUTY_AND_BARBER_SHOPS"
+        MISCELLANEOUS_PERSONAL_SERVICES = "MISCELLANEOUS_PERSONAL_SERVICES"
+        TOWING_SERVICES = "TOWING_SERVICES"
+        COMPUTER_MAINTENANCE_REPAIR = "COMPUTER_MAINTENANCE_REPAIR"
+        BUSINESS_SERVICES = "BUSINESS_SERVICES"
+        AUTOMOTIVE_SERVICE_SHOPS = "AUTOMOTIVE_SERVICE_SHOPS"
+        DOCTORS_AND_PHYSICIANS = "DOCTORS_AND_PHYSICIANS"
+        DENTISTS_AND_ORTHODONTISTS = "DENTISTS_AND_ORTHODONTISTS"
+        MEDICAL_SERVICES_HEALTH_PRACTITIONERS = "MEDICAL_SERVICES_HEALTH_PRACTITIONERS"
+        LEGAL_SERVICES_ATTORNEYS = "LEGAL_SERVICES_ATTORNEYS"
+        PROFESSIONAL_SERVICES = "PROFESSIONAL_SERVICES"
+
+    document: str
+    companyName: str
+    fantasyName: str
+    sellerUrl: str
+    webhook: str
+    email: str
+    password: str
+    owner: CreateSellerOwner
+    address: CreateSellerAddress
+    contact: CreateSellerContact
+    account: CreateSellerAccount
+    ip: Optional[str] = None
+    mccCpf: Optional[MccCpf] = None
+
+
+@dataclass
+class CreateSellerWebhook:
+    uuid: str
+    title: str
+    domains: List[str]
+    active: bool
+    url: str
+
+
+@dataclass
+class CreateSellerResponse:
+    document: str
+    idSeller: int
+    companyName: str
+    email: str
+    webhook: str
+    webhooks: List[CreateSellerWebhook]
+    x_token_api: str
 
 
 @dataclass
