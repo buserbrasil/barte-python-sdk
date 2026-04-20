@@ -15,6 +15,10 @@ from .models import (
     CardToken,
     Charge,
     ChargeList,
+    CreateChargeSplitRequest,
+    CreateChargeSplitResponse,
+    CreateSellerRequest,
+    CreateSellerResponse,
     ErrorResponse,
     InstallmentOption,
     Order,
@@ -135,6 +139,45 @@ class BarteClient:
             data = asdict(data)
         json_response = self._request("POST", "/v2/orders", json=data)
         return from_dict(data_class=Order, data=json_response, config=DACITE_CONFIG)
+
+    def create_seller(self, data: CreateSellerRequest) -> CreateSellerResponse:
+        """Create a new seller"""
+
+        data = asdict(data)
+
+        json_response = self._request("POST", "/v2/seller", json=data)
+
+        if "x-token-api" in json_response:
+            json_response["x_token_api"] = json_response.pop("x-token-api")
+
+        return from_dict(
+            data_class=CreateSellerResponse,
+            data=json_response,
+            config=DACITE_CONFIG,
+        )
+
+    def create_charge_split(
+        self,
+        id_seller: int,
+        charge_uuid: str,
+        data: CreateChargeSplitRequest,
+    ) -> List[CreateChargeSplitResponse]:
+        """Create a split configuration for a specific seller charge."""
+
+        json_response = self._request(
+            "POST",
+            f"/v2/seller/{id_seller}/charges/{charge_uuid}/split",
+            json=asdict(data),
+        )
+
+        return [
+            from_dict(
+                data_class=CreateChargeSplitResponse,
+                data=item,
+                config=DACITE_CONFIG,
+            )
+            for item in json_response
+        ]
 
     def get_charge(self, charge_id: str) -> Charge:
         """Get a specific charge"""
