@@ -39,6 +39,14 @@ class CardToken:
 
 
 @dataclass
+class ThreeDsSession:
+    id: str
+    token: str
+    collectUrl: str
+    providerType: Optional[str]
+
+
+@dataclass
 class ChargerCustomer:
     uuid: str
     document: str

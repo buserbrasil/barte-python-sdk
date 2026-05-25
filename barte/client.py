@@ -24,6 +24,7 @@ from .models import (
     PartialRefund,
     PixCharge,
     Refund,
+    ThreeDsSession,
 )
 
 
@@ -193,6 +194,19 @@ class BarteClient:
         """Create a token for a credit card"""
         json_response = self._request("POST", "/v2/cards", json=card_data)
         return from_dict(data_class=CardToken, data=json_response, config=DACITE_CONFIG)
+
+    def create_3ds_session(self, card_id: str) -> ThreeDsSession:
+        """Create a 3DS session for device data collection."""
+        json_response = self._request(
+            "POST",
+            "/v1/3ds/session",
+            json={"sourceType": "card", "cardId": card_id},
+        )
+        return from_dict(
+            data_class=ThreeDsSession,
+            data=json_response,
+            config=DACITE_CONFIG,
+        )
 
     def get_buyer_cards(self, buyer_id: str) -> List[BuyerCard]:
         """Create a token for a credit card"""
