@@ -351,6 +351,30 @@ def mock_3ds_session_response():
     }
 
 
+@pytest.fixture
+def mock_3ds_error_response():
+    return {
+        "errors": [
+            {
+                "status": "400",
+                "code": "3DS-0001",
+                "title": "BUSINESS_3DS",
+                "description": "Dados 3DS inválidos",
+                "action": "Verifique os dados informados e tente novamente",
+                "additionalInfo": {
+                    "cardId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "provider": "CYBERSOURCE",
+                },
+            }
+        ],
+        "metadata": {
+            "totalRecords": 1,
+            "totalPages": 1,
+            "requestDatetime": "2024-03-20T10:00:00Z",
+        },
+    }
+
+
 class TestBarteClient:
     def test_client_singleton(self):
         """Test client singleton pattern"""
@@ -623,6 +647,33 @@ class TestBarteClient:
         assert session.token == "3ds-session-token-abc"
         assert session.collectUrl == "https://provider.example.com/3ds/collect"
         assert session.providerType == "BRAINTREE"
+
+        mock_request.assert_called_once_with(
+            "POST",
+            f"{barte_client.base_url}/v1/3ds/session",
+            params=None,
+            json={"sourceType": "card", "cardId": card_id},
+        )
+
+    @patch("barte.client.requests.Session.request")
+    def test_create_3ds_session_with_invalid_data_error(
+        self, mock_request, barte_client, mock_3ds_error_response
+    ):
+        """Test create_3ds_session raises BarteError for 400 BUSINESS_3DS payload."""
+        mock_request.return_value.json.return_value = mock_3ds_error_response
+        mock_request.return_value.raise_for_status = Mock()
+
+        card_id = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+
+        with pytest.raises(BarteError) as exc_info:
+            barte_client.create_3ds_session(card_id)
+
+        assert exc_info.value.code == "3DS-0001"
+        assert exc_info.value.message == "Dados 3DS inválidos"
+        assert (
+            exc_info.value.action == "Verifique os dados informados e tente novamente"
+        )
+        assert exc_info.value.charge_uuid is None
 
         mock_request.assert_called_once_with(
             "POST",
