@@ -6,7 +6,14 @@ import pytest
 from dacite import from_dict
 from requests.exceptions import HTTPError
 
-from barte import BarteClient, CardToken, Charge, PartialRefund, PixCharge
+from barte import (
+    BarteClient,
+    CardToken,
+    Charge,
+    PartialRefund,
+    PixCharge,
+    ThreeDsSession,
+)
 from barte.exceptions import BarteError
 from barte.models import (
     DACITE_CONFIG,
@@ -334,6 +341,16 @@ def mock_create_seller_response():
     }
 
 
+@pytest.fixture
+def mock_3ds_session_response():
+    return {
+        "id": "3ds-session-id-123",
+        "token": "3ds-session-token-abc",
+        "collectUrl": "https://provider.example.com/3ds/collect",
+        "providerType": "BRAINTREE",
+    }
+
+
 class TestBarteClient:
     def test_client_singleton(self):
         """Test client singleton pattern"""
@@ -587,6 +604,31 @@ class TestBarteClient:
             f"{barte_client.base_url}/v2/cards",
             params=None,
             json=card_data,
+        )
+
+    @patch("barte.client.requests.Session.request")
+    def test_create_3ds_session(
+        self, mock_request, barte_client, mock_3ds_session_response
+    ):
+        """Test creating a 3DS session using create_3ds_session"""
+        mock_request.return_value.json.return_value = mock_3ds_session_response
+        mock_request.return_value.raise_for_status = Mock()
+
+        card_id = "card-id-123"
+
+        session = barte_client.create_3ds_session(card_id)
+
+        assert isinstance(session, ThreeDsSession)
+        assert session.id == "3ds-session-id-123"
+        assert session.token == "3ds-session-token-abc"
+        assert session.collectUrl == "https://provider.example.com/3ds/collect"
+        assert session.providerType == "BRAINTREE"
+
+        mock_request.assert_called_once_with(
+            "POST",
+            f"{barte_client.base_url}/v1/3ds/session",
+            params=None,
+            json={"sourceType": "card", "cardId": card_id},
         )
 
     @patch("barte.client.requests.Session.request")

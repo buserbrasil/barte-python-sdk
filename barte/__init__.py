@@ -9,6 +9,7 @@ from .models import (
     PixQRCode,
     Refund,
     PartialRefund,
+    ThreeDsSession,
 )
 
 
@@ -23,4 +24,5 @@ __all__ = [
     "PartialRefund",
     "CreateSellerRequest",
     "CreateSellerResponse",
+    "ThreeDsSession",
 ]
