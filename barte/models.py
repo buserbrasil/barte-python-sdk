@@ -281,6 +281,49 @@ class Payment:
 
 
 @dataclass
+class ThreeDSecureBrowser:
+    ip: str
+    userAgent: str
+    acceptHeader: str
+    language: str
+    colorDepth: int
+    screenHeight: int
+    screenWidth: int
+    timeZoneOffset: str
+    javaEnabled: bool
+    javaScriptEnabled: bool
+
+
+@dataclass
+class ThreeDSecureAddress:
+    city: str
+    country: str
+    streetNumber: str
+    zipCode: str
+    state: str
+    street: str
+
+
+@dataclass
+class ThreeDSecureCardHolder:
+    email: str
+    mobilePhone: str
+
+
+@dataclass
+class ThreeDSecure:
+    dataOnly: bool
+    requiresLiabilityShift: bool
+    setupId: str
+    redirectURL: str
+    requestorURL: str
+    browser: ThreeDSecureBrowser
+    billingAddress: ThreeDSecureAddress
+    shippingAddress: ThreeDSecureAddress
+    cardHolder: ThreeDSecureCardHolder
+
+
+@dataclass
 class SubSellerPayment:
     idSubSeller: int
     amount: int
@@ -312,6 +355,7 @@ class OrderPayload:
     description: Optional[str]
     subSellerPaymentRequest: Optional[SubSellerPaymentRequest]
     metadata: Optional[List[Metadata]]
+    threeDSecure: Optional[ThreeDSecure] = None
 
 
 @dataclass
