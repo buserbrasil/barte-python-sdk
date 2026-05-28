@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from datetime import datetime
 from decimal import Decimal
 from unittest.mock import Mock, patch
@@ -27,6 +28,12 @@ from barte.models import (
     CreateSellerResponse,
     InstallmentOption,
     Order,
+    OrderPayload,
+    Payment,
+    ThreeDSecure,
+    ThreeDSecureAddress,
+    ThreeDSecureBrowser,
+    ThreeDSecureCardHolder,
 )
 
 
@@ -479,6 +486,132 @@ class TestBarteClient:
         assert order.customer.name == "John Doe"
         assert order.charges[0].uuid == "35b45f90-11bc-448a-bcb4-969a9697d4d5"
         assert isinstance(order.startDate, datetime)
+
+        mock_request.assert_called_once_with(
+            "POST",
+            f"{barte_client.base_url}/v2/orders",
+            params=None,
+            json=order_data,
+        )
+
+    @patch("barte.client.requests.Session.request")
+    def test_create_order_with_three_d_secure_typed_payload(
+        self, mock_request, barte_client, mock_order_response
+    ):
+        """Test create_order sends threeDSecure when provided in OrderPayload."""
+        mock_request.return_value.json.return_value = mock_order_response
+        mock_request.return_value.raise_for_status = Mock()
+
+        order_payload = OrderPayload(
+            title="Compra Exemplo",
+            uuidBuyer="71d12215-267a-4620-9b17-0715c84d23bd",
+            startDate="2025-04-16",
+            value=130,
+            installments=3,
+            payment=Payment(
+                method="CREDIT_CARD_EARLY_SELLER",
+                brand="mastercard",
+                cardToken="efde9a25-76f9-4d0a-bfbc-1abbdbd8bc07",
+                capture=None,
+                integrationOrderId=None,
+                card=None,
+                fraudData=None,
+            ),
+            attemptReference="123e4567-e89b-12d3-a456-426614174000",
+            urlCallBack="https://webhook.site/unique-id",
+            description="Descrição da compra",
+            subSellerPaymentRequest=None,
+            metadata=None,
+            threeDSecure=ThreeDSecure(
+                dataOnly=False,
+                requiresLiabilityShift=False,
+                setupId="e453da0b-b6a1-4c9a-8820-f2da23b3ffb7",
+                redirectURL="http://localhost:3000/checkout.html",
+                requestorURL="http://localhost:3000",
+                browser=ThreeDSecureBrowser(
+                    ip="127.0.0.1",
+                    userAgent="Mozilla/5.0",
+                    acceptHeader="text/html,application/xhtml+xml",
+                    language="pt-BR",
+                    colorDepth=24,
+                    screenHeight=1080,
+                    screenWidth=1920,
+                    timeZoneOffset="-180",
+                    javaEnabled=False,
+                    javaScriptEnabled=True,
+                ),
+                billingAddress=ThreeDSecureAddress(
+                    city="Uberlândia",
+                    country="BR",
+                    streetNumber="123",
+                    zipCode="38411999",
+                    state="Minas Gerais",
+                    street="Rua Exemplo",
+                ),
+                shippingAddress=ThreeDSecureAddress(
+                    city="Uberlândia",
+                    country="BR",
+                    streetNumber="123",
+                    zipCode="38411999",
+                    state="Minas Gerais",
+                    street="Rua Exemplo",
+                ),
+                cardHolder=ThreeDSecureCardHolder(
+                    email="teste@teste.com",
+                    mobilePhone="24999329393",
+                ),
+            ),
+        )
+
+        order = barte_client.create_order(order_payload)
+
+        assert isinstance(order, Order)
+
+        mock_request.assert_called_once_with(
+            "POST",
+            f"{barte_client.base_url}/v2/orders",
+            params=None,
+            json=asdict(order_payload),
+        )
+
+    @patch("barte.client.requests.Session.request")
+    def test_create_order_with_three_d_secure_error(
+        self, mock_request, barte_client, mock_3ds_error_response
+    ):
+        """Test create_order returns BarteError when API returns 3DS invalid data."""
+        mock_request.return_value.json.return_value = mock_3ds_error_response
+        mock_request.return_value.raise_for_status = Mock()
+
+        order_data = {
+            "startDate": "2025-04-16",
+            "value": 130,
+            "installments": 3,
+            "title": "Compra Exemplo",
+            "description": "Descrição da compra",
+            "payment": {
+                "method": "CREDIT_CARD_EARLY_SELLER",
+                "card": {
+                    "cardToken": "efde9a25-76f9-4d0a-bfbc-1abbdbd8bc07",
+                    "cvv": "950",
+                },
+            },
+            "threeDSecure": {
+                "setupId": "e453da0b-b6a1-4c9a-8820-f2da23b3ffb7",
+                "dataOnly": False,
+                "requiresLiabilityShift": False,
+            },
+            "uuidBuyer": "71d12215-267a-4620-9b17-0715c84d23bd",
+        }
+
+        with pytest.raises(BarteError) as exc_info:
+            barte_client.create_order(order_data)
+
+        assert exc_info.value.code == "3DS-0001"
+        assert exc_info.value.message == "Dados 3DS inválidos"
+        assert (
+            exc_info.value.action == "Verifique os dados informados e tente novamente"
+        )
+        assert exc_info.value.charge_uuid is None
 
         mock_request.assert_called_once_with(
             "POST",
