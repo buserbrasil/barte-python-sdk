@@ -58,6 +58,17 @@ class ChargerCustomer:
 
 
 @dataclass
+class ChargeRefund:
+    uuid: Optional[str] = None
+    amount: Optional[float] = None
+    status: Optional[str] = None
+    createdAt: Optional[datetime] = None
+    date: Optional[datetime] = None
+    idempotencyKey: Optional[str] = None
+    errorReason: Optional[str] = None
+
+
+@dataclass
 class Charge:
     uuid: str
     title: str
@@ -70,11 +81,13 @@ class Charge:
     authorizationCode: Optional[str]
     authorizationNsu: Optional[str]
     interestAmount: Optional[float]
+    refunds: Optional[List[ChargeRefund]]
 
     def refund(self, as_fraud: Optional[bool] = False) -> "Refund":
-        from .client import BarteClient
+        from .client import BarteClient, _deprecated
 
-        return BarteClient.get_instance().refund_charge(self.uuid, as_fraud)
+        _deprecated("Charge.refund", "BarteClient.create_refund")
+        return BarteClient.get_instance()._refund_charge(self.uuid, as_fraud)
 
     def cancel(self) -> "Charge":
         from .client import BarteClient

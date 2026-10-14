@@ -11,6 +11,7 @@ from barte import (
     BarteClient,
     CardToken,
     Charge,
+    ChargeRefund,
     PartialRefund,
     PixCharge,
     ThreeDsSession,
@@ -843,9 +844,10 @@ class TestBarteClient:
         mock_response_obj.raise_for_status = Mock()
         mock_request.return_value = mock_response_obj
 
-        refund = barte_client.refund_charge(
-            "d54f6553-8bcf-4376-a995-aaffb6d29492", as_fraud=False
-        )
+        with pytest.warns(DeprecationWarning):
+            refund = barte_client.refund_charge(
+                "d54f6553-8bcf-4376-a995-aaffb6d29492", as_fraud=False
+            )
         assert isinstance(refund, Charge)
         assert refund.uuid == "d54f6553-8bcf-4376-a995-aaffb6d29492"
         assert refund.value == 23.00
@@ -871,6 +873,7 @@ class TestBarteClient:
         assert charge.value == 1000.00
         assert charge.customer.name == "John Doe"
         assert isinstance(charge.paidDate, datetime)
+        assert charge.refunds is None
 
         mock_request.assert_called_once_with(
             "GET",
@@ -1022,9 +1025,10 @@ class TestBarteClient:
 
         refund_value = 10
 
-        refund = barte_client.partial_refund_charge(
-            "d54f6553-8bcf-4376-a995-aaffb6d29492", value=refund_value
-        )
+        with pytest.warns(DeprecationWarning):
+            refund = barte_client.partial_refund_charge(
+                "d54f6553-8bcf-4376-a995-aaffb6d29492", value=refund_value
+            )
 
         assert isinstance(refund[0], PartialRefund)
         assert refund[0].uuid == "d54f6553-8bcf-4376-a995-aaffb6d29492"
@@ -1049,7 +1053,8 @@ class TestBarteClient:
         mock_response_obj.raise_for_status = Mock()
         mock_request.return_value = mock_response_obj
 
-        refund = barte_client.get_refund(refund_uuid)
+        with pytest.warns(DeprecationWarning):
+            refund = barte_client.get_refund(refund_uuid)
 
         assert isinstance(refund[0], PartialRefund)
         assert refund[0].uuid == refund_uuid
@@ -1092,7 +1097,7 @@ class TestBarteClient:
         mock_request.return_value.json.return_value = mock_refund_error_response
         mock_request.return_value.raise_for_status = Mock()
 
-        with pytest.raises(BarteError) as exc_info:
+        with pytest.warns(DeprecationWarning), pytest.raises(BarteError) as exc_info:
             barte_client.refund_charge("d54f6553-8bcf-4376-a995-aaffb6d29492")
 
         assert exc_info.value.code == "BAR-7010"
@@ -1107,7 +1112,7 @@ class TestBarteClient:
         mock_request.return_value.json.return_value = mock_refund_error_response
         mock_request.return_value.raise_for_status = Mock()
 
-        with pytest.raises(BarteError) as exc_info:
+        with pytest.warns(DeprecationWarning), pytest.raises(BarteError) as exc_info:
             barte_client.partial_refund_charge(
                 "d54f6553-8bcf-4376-a995-aaffb6d29492", value=Decimal("10.00")
             )
@@ -1126,7 +1131,7 @@ class TestBarteClient:
         )
         mock_request.return_value.raise_for_status = Mock()
 
-        with pytest.raises(BarteError) as exc_info:
+        with pytest.warns(DeprecationWarning), pytest.raises(BarteError) as exc_info:
             barte_client.refund_charge("d54f6553-8bcf-4376-a995-aaffb6d29492")
 
         assert exc_info.value.code == "BAR-7010"
@@ -1225,7 +1230,7 @@ class TestBarteClient:
         )
         mock_request.return_value.raise_for_status = Mock()
 
-        with pytest.raises(BarteError) as exc_info:
+        with pytest.warns(DeprecationWarning), pytest.raises(BarteError) as exc_info:
             barte_client.partial_refund_charge(
                 "d54f6553-8bcf-4376-a995-aaffb6d29492", value=Decimal("101.00")
             )
@@ -1235,3 +1240,100 @@ class TestBarteClient:
             exc_info.value.message
             == "Valor solicitado é maior que o valor disponível na cobrança."
         )
+
+    @patch("barte.client.requests.Session.request")
+    def test_create_refund(self, mock_request, barte_client):
+        """Test requesting a refund on the v3 endpoint"""
+        mock_request.return_value.json.return_value = {
+            "uuid": "cebd9a00-620a-40cf-b9a6-5f6eb55dc563",
+            "amount": 10.0,
+            "status": "PROCESSING",
+            "createdAt": "2026-10-13T20:19:43Z",
+            "idempotencyKey": "estorno-1",
+        }
+        mock_request.return_value.raise_for_status = Mock()
+
+        refund = barte_client.create_refund(
+            "8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31", Decimal("10.00"), "estorno-1"
+        )
+
+        assert isinstance(refund, ChargeRefund)
+        assert refund.uuid == "cebd9a00-620a-40cf-b9a6-5f6eb55dc563"
+        assert refund.status == "PROCESSING"
+        assert refund.idempotencyKey == "estorno-1"
+        assert isinstance(refund.createdAt, datetime)
+        mock_request.assert_called_once_with(
+            "POST",
+            f"{barte_client.base_url}/v2/charges/8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31/refunds",
+            params=None,
+            json={"amount": 10.0},
+            headers={"x-idempotency-key": "estorno-1"},
+        )
+
+    @pytest.mark.parametrize(
+        ("amount", "key"),
+        [(Decimal("10.00"), ""), (Decimal("10.00"), None), (Decimal("10.005"), "k")],
+    )
+    def test_create_refund_rejects_invalid_input(self, barte_client, amount, key):
+        """Test create_refund refuses an empty key or more than two decimals"""
+        with pytest.raises(ValueError):
+            barte_client.create_refund(
+                "8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31", amount, key
+            )
+
+    @patch("barte.client.requests.Session.request")
+    def test_create_refund_conflict_keeps_http_status(self, mock_request, barte_client):
+        """Test the 409 of an idempotency conflict reaches the caller"""
+        mock_response = Mock()
+        mock_response.status_code = 409
+        mock_response.json.return_value = {
+            "errors": [
+                {
+                    "code": "BAR-0466",
+                    "title": "Erro no fluxo de assinatura",
+                    "description": "A chave de idempotência já foi utilizada nesta cobrança com outro valor.",
+                }
+            ],
+            "metadata": {
+                "totalRecords": 1,
+                "totalPages": 1,
+                "requestDatetime": "2026-10-13T20:19:44Z",
+            },
+        }
+        mock_request.return_value = mock_response
+
+        with pytest.raises(BarteError) as exc_info:
+            barte_client.create_refund(
+                "8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31", Decimal("20.00"), "estorno-1"
+            )
+
+        assert exc_info.value.code == "BAR-0466"
+        assert exc_info.value.response.status_code == 409
+
+    @patch("barte.client.requests.Session.request")
+    def test_get_charge_with_refunds(
+        self, mock_request, barte_client, mock_charge_response
+    ):
+        """Test get_charge exposes refunds[], including items with null fields"""
+        mock_request.return_value.json.return_value = {
+            **mock_charge_response,
+            "refunds": [
+                {
+                    "uuid": "cebd9a00-620a-40cf-b9a6-5f6eb55dc563",
+                    "date": "2026-10-13",
+                    "createdAt": "2026-10-13T20:19:43Z",
+                    "amount": 10.0,
+                    "status": "SUCCESS",
+                    "idempotencyKey": "estorno-1",
+                },
+                {"uuid": None, "amount": 5.0, "status": None, "idempotencyKey": None},
+            ],
+        }
+        mock_request.return_value.raise_for_status = Mock()
+
+        charge = barte_client.get_charge("8b6b2ddc-7ccb-4d1f-8832-ef0adc62ed31")
+
+        assert [(r.idempotencyKey, r.status, r.amount) for r in charge.refunds] == [
+            ("estorno-1", "SUCCESS", 10.0),
+            (None, None, 5.0),
+        ]
