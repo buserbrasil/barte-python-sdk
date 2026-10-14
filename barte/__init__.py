@@ -2,6 +2,7 @@ from .client import BarteClient
 from .models import (
     CardToken,
     Charge,
+    ChargeRefund,
     CreateSellerRequest,
     CreateSellerResponse,
     Customer,
@@ -16,6 +17,7 @@ from .models import (
 __all__ = [
     "BarteClient",
     "Charge",
+    "ChargeRefund",
     "CardToken",
     "Refund",
     "PixCharge",

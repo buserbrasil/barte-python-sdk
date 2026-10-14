@@ -1,3 +1,4 @@
+import warnings
 from dataclasses import asdict
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Union
@@ -15,6 +16,7 @@ from .models import (
     CardToken,
     Charge,
     ChargeList,
+    ChargeRefund,
     CreateSellerRequest,
     CreateSellerResponse,
     ErrorResponse,
@@ -26,6 +28,10 @@ from .models import (
     Refund,
     ThreeDsSession,
 )
+
+
+def _deprecated(old: str, new: str) -> None:
+    warnings.warn(f"{old} is deprecated, use {new}", DeprecationWarning, stacklevel=3)
 
 
 class BarteClient:
@@ -92,6 +98,7 @@ class BarteClient:
         path: str,
         params: Optional[Dict[str, Any]] = None,
         json: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
     ) -> Union[Dict[str, Any], List[Any], None]:
         """
         Private method to centralize HTTP requests.
@@ -101,6 +108,7 @@ class BarteClient:
             path: API endpoint path (e.g., '/v2/orders')
             params: Query parameters for GET requests.
             json: JSON body for POST, PATCH requests.
+            headers: Per-request headers, merged over the session headers.
 
         Returns:
             The response JSON as a dictionary or list.
@@ -111,7 +119,8 @@ class BarteClient:
                        without a structured error response.
         """
         url = f"{self.base_url}{path}"
-        response = self.session.request(method, url, params=params, json=json)
+        extra = {"headers": headers} if headers else {}
+        response = self.session.request(method, url, params=params, json=json, **extra)
 
         if response.status_code == 204:
             return None
@@ -227,6 +236,12 @@ class BarteClient:
         Raises:
             BarteError: When the API returns an error response with Barte error codes.
         """
+        _deprecated("refund_charge", "create_refund")
+        return self._refund_charge(charge_id, as_fraud)
+
+    def _refund_charge(
+        self, charge_id: str, as_fraud: Optional[bool] = False
+    ) -> Charge:
         json_response = self._request(
             "PATCH", f"/v2/charges/{charge_id}/refund", json={"asFraud": as_fraud}
         )
@@ -240,6 +255,7 @@ class BarteClient:
         Raises:
             BarteError: When the API returns an error response with Barte error codes.
         """
+        _deprecated("partial_refund_charge", "create_refund")
         json_response = self._request(
             "PATCH", f"/v2/charges/partial-refund/{charge_id}", json={"value": value}
         )
@@ -250,11 +266,35 @@ class BarteClient:
 
     def get_refund(self, charge_id: str) -> List[Refund]:
         """Get refund detail"""
+        _deprecated("get_refund", "Charge.refunds from get_charge")
         json_response = self._request("GET", f"/v2/charges/partial-refund/{charge_id}")
         return [
             from_dict(data_class=Refund, data=item, config=DACITE_CONFIG)
             for item in json_response
         ]
+
+    def create_refund(
+        self, charge_id: str, amount: Decimal, idempotency_key: str
+    ) -> ChargeRefund:
+        """Refund a charge, total or partial (refund v3)
+
+        Raises:
+            ValueError: If the idempotency key is empty or the amount has more than two decimal places.
+            BarteError: When the API returns an error response with Barte error codes.
+        """
+        if not idempotency_key:
+            raise ValueError("idempotency_key is required")
+        if round(amount, 2) != amount:
+            raise ValueError("amount must have at most two decimal places")
+        json_response = self._request(
+            "POST",
+            f"/v2/charges/{charge_id}/refunds",
+            json={"amount": float(amount)},
+            headers={"x-idempotency-key": idempotency_key},
+        )
+        return from_dict(
+            data_class=ChargeRefund, data=json_response, config=DACITE_CONFIG
+        )
 
     def get_installments(
         self, amount: Decimal, max_installments: int
