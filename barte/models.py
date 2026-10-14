@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 from typing import List, Literal, Optional
@@ -81,7 +81,7 @@ class Charge:
     authorizationCode: Optional[str]
     authorizationNsu: Optional[str]
     interestAmount: Optional[float]
-    refunds: Optional[List[ChargeRefund]]
+    refunds: Optional[List[ChargeRefund]] = field(default=None, kw_only=True)
 
     def refund(self, as_fraud: Optional[bool] = False) -> "Refund":
         from .client import BarteClient, _deprecated

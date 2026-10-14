@@ -19,6 +19,7 @@ from barte import (
 from barte.exceptions import BarteError
 from barte.models import (
     DACITE_CONFIG,
+    ChargerCustomer,
     CreateSellerAccount,
     CreateSellerAccountDetails,
     CreateSellerAddress,
@@ -1337,3 +1338,33 @@ class TestBarteClient:
             ("estorno-1", "SUCCESS", 10.0),
             (None, None, 5.0),
         ]
+
+    def test_charge_constructors_keep_positional_signature(self):
+        """Test refunds is keyword-only, so existing positional calls still work"""
+        customer = ChargerCustomer(
+            uuid="",
+            document="19340911032",
+            type="CPF",
+            name="John Doe",
+            email="john@example.com",
+            phone="11999999999",
+            alternativeEmail=None,
+        )
+        pix = PixCharge(
+            "7a384917-e73e-466e-b90d-8c9f04e7fa9f",
+            "Teste",
+            datetime(2025, 2, 12),
+            3.00,
+            "PIX",
+            "SCHEDULED",
+            customer,
+            None,
+            None,
+            None,
+            None,
+            "pix-code",
+            "pix-image",
+        )
+
+        assert pix.pixCode == "pix-code"
+        assert pix.refunds is None
